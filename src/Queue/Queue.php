@@ -16,7 +16,7 @@ class Queue extends JiyisNsqQueue
 
     /**
      * NsqQueue constructor.
-     * @param NsqClientManager $client
+     * @param ClientManager $client
      * @param $consumerJob
      * @param int $retryAfter
      */
