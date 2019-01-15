@@ -1,0 +1,25 @@
+{
+  "name": "merkeleon/laravel-nsq",
+  "description": "Laravel NSQ",
+  "require": {
+    "php": "^7.1.3",
+    "laravel/framework": "^5.7",
+    "jiyis/laravel-nsq": "^1.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^7.0"
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Merkeleon\\Nsq\\Providers\\NsqServiceProvider"
+      ]
+    }
+  },
+  "autoload": {
+    "psr-4": {
+      "Merkeleon\\Nsq\\": "src/"
+    }
+  },
+  "minimum-stability": "dev"
+}
