@@ -21,5 +21,17 @@
       "Merkeleon\\Nsq\\": "src/"
     }
   },
-  "minimum-stability": "dev"
+  "config": {
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "optimize-autoloader": true
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "repositories": {
+    "romikring-laravel-nsq": {
+      "type": "vcs",
+      "url": "file:///home/web/merkeleon/laravel-nsq/"
+    }
+  }
 }
