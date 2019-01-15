@@ -25,7 +25,7 @@ class Queue extends JiyisNsqQueue
         parent::__construct($client, null, $retryAfter);
     }
 
-    public function pushRaw($payload, $queue = null, array $options = []): NsqQueue
+    public function pushRaw($payload, $queue = null, array $options = []): Queue
     {
         if (empty($queue))
         {

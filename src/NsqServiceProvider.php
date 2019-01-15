@@ -1,8 +1,9 @@
 <?php
 
-namespace Merkeleon\Nsq\Providers;
+namespace Merkeleon\Nsq;
 
 
+use Merkeleon\Nsq\Providers\WorkCommandProvider;
 use Merkeleon\Nsq\Queue\Connector;
 use Illuminate\Queue\QueueManager;
 use Illuminate\Support\ServiceProvider;

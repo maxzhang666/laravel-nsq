@@ -61,7 +61,7 @@ class ClientManager extends JiyisNsqClientManager
     {
         if (empty($channel))
         {
-            $channel = array_get($this->config, 'channel', 'default');
+            $channel = Arr::get($this->config, 'channel', 'default');
         }
         $this->channel = $channel;
 

@@ -12,7 +12,7 @@
   "extra": {
     "laravel": {
       "providers": [
-        "Merkeleon\\Nsq\\Providers\\NsqServiceProvider"
+        "Merkeleon\\Nsq\\NsqServiceProvider"
       ]
     }
   },
