@@ -15,13 +15,8 @@ class WorkCommand extends BaseWorkCommand
      */
     public function handle()
     {
-        $this->hasOption('queue') && Config::set(['consumer' => 1]);
+        Config::set(['consumer' => 1]);
 
-        if (method_exists(get_parent_class($this), 'handle'))
-        {
-            parent::handle();
-        }
-
-        parent::fire();
+        parent::handle();
     }
 }
