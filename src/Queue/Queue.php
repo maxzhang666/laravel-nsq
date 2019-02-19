@@ -192,6 +192,18 @@ class Queue extends JiyisNsqQueue
         }
         catch (\Throwable $exception)
         {
+            $msg = $exception->getMessage();
+            if (strpos($msg, 'Error talking to nsq lookupd via') !== false && strpos($msg, 'lookup?topic=') !== false)
+            {
+                // Running worker is trying to get data from still not created topic
+                // it's correct behaviour, just no one event was fired that initiate topic creation
+
+                logger()->error('It looks like topic wasn\'t created', [$exception]);
+
+                // Force job sleep to prevent NSQ polling
+                sleep(60);
+                return;
+            }
             throw new SubscribeException($exception->getMessage());
         }
     }
