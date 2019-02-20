@@ -202,9 +202,17 @@ class Queue extends JiyisNsqQueue
 
                 // Force job sleep to prevent NSQ polling
                 sleep(60);
+
                 return;
             }
             throw new SubscribeException($exception->getMessage());
         }
+    }
+
+    /**
+     * refresh nsq client form nsqlookupd result
+     */
+    protected function refreshClient()
+    {
     }
 }
