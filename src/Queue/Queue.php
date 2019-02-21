@@ -14,6 +14,9 @@ class Queue extends JiyisNsqQueue
 {
     public const QUEUE_NAME_DEFAULT = 'default';
 
+    /** @var ClientManager */
+    protected $pool;
+
     /**
      * NsqQueue constructor.
      * @param ClientManager $client
@@ -40,14 +43,30 @@ class Queue extends JiyisNsqQueue
 
     public function publish($topic, $msg, $tries = 1)
     {
-        $producerPool = $this->pool->getProducerPool();
+        /** @var ClientManager $pool */
+        $pool = $this->pool;
+        if (!$pool->hasConnectedProducers())
+        {
+            $pool->setUpProducers();
+        }
+
+        $producerPool = $pool->getProducerPool();
+
         // pick a random
         shuffle($producerPool);
 
         $success = 0;
         $errors  = [];
-        foreach ($producerPool as $producer)
+        foreach ($producerPool as $key => $producer)
         {
+            if (!$producer->isConnected())
+            {
+                $producer = $pool->reconnectProducerClient($key);
+                if (!$producer)
+                {
+                    throw new \Exception('Producer isn\'t connected');
+                }
+            }
             try
             {
                 logger()->info('Try to publish message into the queue', [
@@ -93,7 +112,7 @@ class Queue extends JiyisNsqQueue
                             throw $e;
                         }
 
-                        $producer->reconnect();
+                        $this->pool->reconnectProducerClient($key);
                     }
                 }
             }
@@ -124,24 +143,30 @@ class Queue extends JiyisNsqQueue
 
     public function pop($queue = null)
     {
-        $this->pool->setTopic($queue);
-        $this->pool->setChannel();
+        /** @var ClientManager $pool */
+        $pool = $this->pool;
+
+        $pool->setTopic($queue);
+        $pool->setChannel();
 
         try
         {
-            if (count($this->pool->getConsumerPool()) < 1)
+            if (!$pool->hasConnectedConcumers())
             {
-                $this->pool->connect();
+                $pool->setUpConsumers();
             }
 
             $response = null;
             foreach ($this->pool->getConsumerPool() as $key => $client)
             {
                 // if lost connection  try connect
-                //Log::info(socket_strerror($client->getClient()->errCode));
                 if (!$client->isConnected())
                 {
-                    $this->pool->setConsumerPool($key);
+                    $client = $this->pool->reconnectConsumerClient($key);
+                    if (!$client)
+                    {
+                        throw new \Exception('Consumer isn\'t connected');
+                    }
                 }
 
                 $this->currentClient = $client;
@@ -214,5 +239,19 @@ class Queue extends JiyisNsqQueue
      */
     protected function refreshClient()
     {
+        // check connect time
+        $connectTime = $this->pool->getConnectTime();
+        $currentTime = time();
+
+        if ($currentTime - $connectTime >= 300) // 5 min
+        {
+            foreach ($this->pool->getConsumerPool() as $key => $client)
+            {
+                $this->pool->reconnectConsumerClient($key);
+            }
+            logger()->info("refresh nsq client success.");
+
+            $this->pool->setConnectTime($currentTime);
+        }
     }
 }
