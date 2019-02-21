@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Arr;
 use Jiyis\Nsq\Adapter\NsqClientManager as JiyisNsqClientManager;
 use Jiyis\Nsq\Lookup\Lookup;
-use Jiyis\Nsq\Monitor\Consumer;
+use Jiyis\Nsq\Message\Packet;
+use Merkeleon\Nsq\Monitor\Consumer;
 use Jiyis\Nsq\Monitor\Producer;
 
 class ClientManager extends JiyisNsqClientManager
@@ -141,6 +142,7 @@ class ClientManager extends JiyisNsqClientManager
             $producer = $this->producerPool[$key];
             if ($producer->isConnected())
             {
+                $producer->send(Packet::cls());
                 $producer->close();
             }
 
@@ -206,6 +208,7 @@ class ClientManager extends JiyisNsqClientManager
             $consumer = $this->consumerPool[$key];
             if ($consumer->isConnected())
             {
+                $consumer->send(Packet::cls());
                 $consumer->close();
             }
 
