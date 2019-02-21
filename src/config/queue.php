@@ -18,13 +18,14 @@ return [
     /* Nsq Config */
     'options'               => [
         //Update RDY state (indicate you are ready to receive N messages)
-        'rdy' => 1,
+        'rdy' => 20000,
         'cl'  => 4
     ],
 
     /* Nsq identify */
     'identify'              => [
-        'user_agent' => 'nsq-client',
+        'user_agent' => 'merkeleon-nsq/1.0.5',
+        'heartbeat_interval' => 30000,
     ],
 
     /* Swoole Client Params */
