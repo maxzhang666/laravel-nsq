@@ -20,7 +20,7 @@ class Queue extends JiyisNsqQueue
     protected $pool;
 
     protected $counter = 0;
-    protected $rdy     = 30;
+    protected $rdy     = 10;
 
     /**
      * NsqQueue constructor.
@@ -31,6 +31,8 @@ class Queue extends JiyisNsqQueue
     public function __construct(ClientManager $client, $retryAfter = 60)
     {
         parent::__construct($client, null, $retryAfter);
+
+        $this->rdy = Config::get('nsq.options.buffer', $this->rdy);
     }
 
     public function pushRaw($payload, $queue = null, array $options = []): Queue
@@ -252,20 +254,11 @@ class Queue extends JiyisNsqQueue
      */
     protected function refreshClient()
     {
-        // check connect time
-//        $connectTime = $this->pool->getConnectTime();
-//        $currentTime = time();
-//
-//        if ($currentTime - $connectTime >= 300) // 5 min
-//        {
-//            foreach ($this->pool->getConsumerPool() as $key => $client)
-//            {
-//                $this->pool->reconnectConsumerClient($key);
-//            }
-//            logger()->info("refresh nsq client success.");
-//
-//            $this->pool->setConnectTime($currentTime);
-//        }
+        foreach ($this->pool->getConsumerPool() as $key => $client)
+        {
+            $this->pool->reconnectConsumerClient($key);
+        }
+        logger()->info("refresh nsq client success.");
     }
 
     /**
@@ -273,15 +266,17 @@ class Queue extends JiyisNsqQueue
      */
     protected function updateConsumerBuffer(Consumer $client)
     {
-        $this->counter++;
-
-        $current = $this->rdy - $this->counter;
-        $low     = 1;
-
-        if ($current <= $low)
+        if ($this->rdy - ++$this->counter <= 0)
         {
             $this->counter = 0;
-            $client->send(Packet::rdy($this->rdy));
+            try
+            {
+                $client->send(Packet::rdy($this->rdy));
+            } catch (Exception $e) {
+                logger()->error($e->getMessage());
+
+                $this->refreshClient();
+            }
         }
     }
 }
