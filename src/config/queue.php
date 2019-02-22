@@ -3,7 +3,7 @@
 return [
     'driver'           => 'nsq',
     'queue'            => env('API_PREFIX', 'default'),
-    'retry_delay_time' => 60,
+    'retry_delay_time' => 10,
     'channel'          => 'web',
 
     'retry_num_connections' => env('NSQ_RETRY_NUM_CONNECTIONS', 10),
@@ -18,13 +18,14 @@ return [
     /* Nsq Config */
     'options'               => [
         //Update RDY state (indicate you are ready to receive N messages)
-        'rdy' => 20000,
-        'cl'  => 4
+        'rdy' => 1,
+        'cl'  => 1,
+        'buffer' => 100,
     ],
 
     /* Nsq identify */
     'identify'              => [
-        'user_agent' => 'merkeleon-nsq/1.0.5',
+        'user_agent' => 'merkeleon-nsq/1.0.6',
         'heartbeat_interval' => 30000,
     ],
 

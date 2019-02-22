@@ -10,6 +10,7 @@ use Jiyis\Nsq\Lookup\Lookup;
 use Jiyis\Nsq\Message\Packet;
 use Merkeleon\Nsq\Monitor\Consumer;
 use Jiyis\Nsq\Monitor\Producer;
+use Exception;
 
 class ClientManager extends JiyisNsqClientManager
 {
@@ -31,13 +32,16 @@ class ClientManager extends JiyisNsqClientManager
 
     /**
      * reflect job, get topic and channel
-     * @throws \ReflectionException
      */
     public function reflectionJob()
     {
     }
 
-    public function setUpProducers()
+    /**
+     * @return ClientManager
+     * @throws Exception
+     */
+    public function setUpProducers(): self
     {
         /**
          * if topic and channel is null, then the command is pub
@@ -56,13 +60,17 @@ class ClientManager extends JiyisNsqClientManager
 
         if (!$this->hasConnectedProducers())
         {
-            throw new \Exception('Cannot set up producer(s)');
+            throw new Exception('Cannot set up producer(s)');
         }
 
         return $this;
     }
 
-    public function setUpConsumers()
+    /**
+     * @return ClientManager
+     * @throws Exception
+     */
+    public function setUpConsumers(): self
     {
         $lookup   = new Lookup(Arr::get($this->config, 'connection.nsqlookup_url', ['127.0.0.1:4161']));
         $nsqdList = $lookup->lookupHosts($this->topic);
@@ -79,15 +87,15 @@ class ClientManager extends JiyisNsqClientManager
 
         if (!$this->hasConnectedConcumers())
         {
-            throw new \Exception('Cannot set up consumer(s)');
+            throw new Exception('Cannot set up consumer(s)');
         }
 
         return $this;
     }
 
     /**
-     * @param $key
-     * @throws \Exception
+     * @param string $key
+     * @return Producer|null
      */
     public function reconnectProducerClient($key)
     {
@@ -119,7 +127,7 @@ class ClientManager extends JiyisNsqClientManager
                 }
                 break;
             }
-            catch (\Exception $e)
+            catch (Exception $e)
             {
                 logger()->error('Producer cannot connect to the NSQ', [$e]);
                 sleep($retry_wait);
@@ -134,7 +142,11 @@ class ClientManager extends JiyisNsqClientManager
         return null;
     }
 
-    public function unsetProducerClient($key)
+    /**
+     * @param string $key
+     * @return ClientManager
+     */
+    public function unsetProducerClient($key): self
     {
         if (isset($this->producerPool[$key]))
         {
@@ -152,6 +164,10 @@ class ClientManager extends JiyisNsqClientManager
         return $this;
     }
 
+    /**
+     * @param string $key
+     * @return Consumer|null
+     */
     public function reconnectConsumerClient($key)
     {
         $retry_connections = Arr::get($this->config, 'retry_num_connections', 10) ?: 1;
@@ -185,7 +201,7 @@ class ClientManager extends JiyisNsqClientManager
                 }
                 break;
             }
-            catch (\Exception $e)
+            catch (Exception $e)
             {
                 logger()->error('Consumer cannot connect to the NSQ topic/channel', [$e]);
                 sleep($retry_wait);
@@ -200,7 +216,11 @@ class ClientManager extends JiyisNsqClientManager
         return null;
     }
 
-    public function unsetConsumerClient($key)
+    /**
+     * @param string $key Consumer's ID
+     * @return ClientManager
+     */
+    public function unsetConsumerClient($key): self
     {
         if (isset($this->consumerPool[$key]))
         {
@@ -218,16 +238,26 @@ class ClientManager extends JiyisNsqClientManager
         return $this;
     }
 
-    public function hasConnectedConcumers()
+    /**
+     * @return bool
+     */
+    public function hasConnectedConcumers(): bool
     {
         return count($this->consumerPool) > 0;
     }
 
-    public function hasConnectedProducers()
+    /**
+     * @return bool
+     */
+    public function hasConnectedProducers(): bool
     {
         return count($this->producerPool) > 0;
     }
 
+    /**
+     * @param $topic
+     * @return ClientManager
+     */
     public function setTopic($topic): self
     {
         $this->topic = $topic;
@@ -235,6 +265,10 @@ class ClientManager extends JiyisNsqClientManager
         return $this;
     }
 
+    /**
+     * @param string|null $channel Name of the channel
+     * @return ClientManager
+     */
     public function setChannel($channel = null): self
     {
         if (empty($channel))
