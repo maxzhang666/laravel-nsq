@@ -9,6 +9,8 @@ use Jiyis\Nsq\Message\Unpack;
 use Jiyis\Nsq\Queue\Jobs\NsqJob;
 use Jiyis\Nsq\Queue\NsqQueue as JiyisNsqQueue;
 use Illuminate\Support\Facades\Config;
+use Merkeleon\Nsq\Monitor\Consumer;
+use Exception;
 
 class Queue extends JiyisNsqQueue
 {
@@ -16,6 +18,9 @@ class Queue extends JiyisNsqQueue
 
     /** @var ClientManager */
     protected $pool;
+
+    protected $counter = 0;
+    protected $rdy     = 30;
 
     /**
      * NsqQueue constructor.
@@ -41,6 +46,13 @@ class Queue extends JiyisNsqQueue
                     ->publish($queue, $payload);
     }
 
+    /**
+     * @param string $topic
+     * @param array|string $msg
+     * @param int $tries
+     * @return $this|JiyisNsqQueue
+     * @throws Exception
+     */
     public function publish($topic, $msg, $tries = 1)
     {
         /** @var ClientManager $pool */
@@ -64,7 +76,7 @@ class Queue extends JiyisNsqQueue
                 $producer = $pool->reconnectProducerClient($key);
                 if (!$producer)
                 {
-                    throw new \Exception('Producer isn\'t connected');
+                    throw new Exception('Producer isn\'t connected');
                 }
             }
             try
@@ -165,13 +177,15 @@ class Queue extends JiyisNsqQueue
                     $client = $this->pool->reconnectConsumerClient($key);
                     if (!$client)
                     {
-                        throw new \Exception('Consumer isn\'t connected');
+                        throw new Exception('Consumer isn\'t connected');
                     }
                 }
 
                 $this->currentClient = $client;
 
                 $data = $this->currentClient->receive();
+
+                $this->updateConsumerBuffer($client);
 
                 // if no message return null
                 if ($data == false)
@@ -184,7 +198,6 @@ class Queue extends JiyisNsqQueue
 
                 if (Unpack::isHeartbeat($frame))
                 {
-                    //Log::info($key . "sending heartbeat");
                     $this->currentClient->send(Packet::nop());
                 }
                 elseif (Unpack::isOk($frame))
@@ -210,7 +223,7 @@ class Queue extends JiyisNsqQueue
                 }
             }
 
-            $this->refreshClient();
+//            $this->refreshClient();
 
             return $response;
 
@@ -240,18 +253,35 @@ class Queue extends JiyisNsqQueue
     protected function refreshClient()
     {
         // check connect time
-        $connectTime = $this->pool->getConnectTime();
-        $currentTime = time();
+//        $connectTime = $this->pool->getConnectTime();
+//        $currentTime = time();
+//
+//        if ($currentTime - $connectTime >= 300) // 5 min
+//        {
+//            foreach ($this->pool->getConsumerPool() as $key => $client)
+//            {
+//                $this->pool->reconnectConsumerClient($key);
+//            }
+//            logger()->info("refresh nsq client success.");
+//
+//            $this->pool->setConnectTime($currentTime);
+//        }
+    }
 
-        if ($currentTime - $connectTime >= 300) // 5 min
+    /**
+     * @param Consumer $client
+     */
+    protected function updateConsumerBuffer(Consumer $client)
+    {
+        $this->counter++;
+
+        $current = $this->rdy - $this->counter;
+        $low     = 1;
+
+        if ($current <= $low)
         {
-            foreach ($this->pool->getConsumerPool() as $key => $client)
-            {
-                $this->pool->reconnectConsumerClient($key);
-            }
-            logger()->info("refresh nsq client success.");
-
-            $this->pool->setConnectTime($currentTime);
+            $this->counter = 0;
+            $client->send(Packet::rdy($this->rdy));
         }
     }
 }
