@@ -274,8 +274,7 @@ class Queue extends JiyisNsqQueue
                 $client->send(Packet::rdy($this->rdy));
             } catch (Exception $e) {
                 logger()->error($e->getMessage());
-
-                $this->refreshClient();
+                exit(1);
             }
         }
     }

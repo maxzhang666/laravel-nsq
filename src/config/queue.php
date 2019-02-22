@@ -20,12 +20,12 @@ return [
         //Update RDY state (indicate you are ready to receive N messages)
         'rdy' => 1,
         'cl'  => 1,
-        'buffer' => 100,
+        'buffer' => 10,
     ],
 
     /* Nsq identify */
     'identify'              => [
-        'user_agent' => 'merkeleon-nsq/1.0.6',
+        'user_agent' => 'merkeleon-nsq/1.0.7',
         'heartbeat_interval' => 30000,
     ],
 
