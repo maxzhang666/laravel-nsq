@@ -83,11 +83,11 @@ class Queue extends JiyisNsqQueue
             }
             try
             {
-                logger()->info('Try to publish message into the queue', [
-                    'topic'    => $topic,
-                    'message'  => $msg,
-                    'producer' => $producer,
-                ]);
+//                logger()->info('Try to publish message into the queue', [
+//                    'topic'    => $topic,
+//                    'message'  => $msg,
+//                    'producer' => $producer,
+//                ]);
                 for ($run = 0; $run < $tries; $run++)
                 {
                     try
@@ -215,7 +215,7 @@ class Queue extends JiyisNsqQueue
                     $msg               = \json_decode($frame['message'], true);
                     $this->consumerJob = \unserialize($msg['job']);
                     $rawBody           = $this->adapterNsqPayload($this->consumerJob, $frame);
-                    logger()->info("Ready to process job.", ['raw_body' => $rawBody]);
+//                    logger()->info("Ready to process job.", ['raw_body' => $rawBody]);
 
                     $response = new NsqJob($this->container, $this, $rawBody, $queue);
                 }
