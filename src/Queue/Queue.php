@@ -115,12 +115,12 @@ class Queue extends JiyisNsqQueue
                     }
                     catch (\Throwable $e)
                     {
-                        logger()->error('Error while sending message into the queue', [
-                            'topic'    => $topic,
-                            'message'  => $msg,
-                            'producer' => $producer,
-                            'error'    => $e->getMessage()
-                        ]);
+//                        logger()->error('Error while sending message into the queue', [
+//                            'topic'    => $topic,
+//                            'message'  => $msg,
+//                            'producer' => $producer,
+//                            'error'    => $e->getMessage()
+//                        ]);
                         if ($run >= $tries)
                         {
                             throw $e;
@@ -147,7 +147,7 @@ class Queue extends JiyisNsqQueue
                 sprintf('Failed to publish message; required %s for success, achieved %s. Errors were: %s', $this->pubSuccessCount, $success, implode(', ', $errors))
             );
 
-            logger()->error($error->getMessage());
+//            logger()->error($error->getMessage());
 
             throw $error;
         }
@@ -221,7 +221,7 @@ class Queue extends JiyisNsqQueue
                 }
                 else
                 {
-                    logger()->error('Unknown type of message', ['frame' => $frame]);
+//                    logger()->error('Unknown type of message', ['frame' => $frame]);
                 }
             }
 
@@ -238,7 +238,7 @@ class Queue extends JiyisNsqQueue
                 // Running worker is trying to get data from still not created topic
                 // it's correct behaviour, just no one event was fired that initiate topic creation
 
-                logger()->error('It looks like topic wasn\'t created', [$exception]);
+//                logger()->error('It looks like topic wasn\'t created', [$exception]);
 
                 // Force job sleep to prevent NSQ polling
                 sleep(60);
@@ -258,7 +258,7 @@ class Queue extends JiyisNsqQueue
         {
             $this->pool->reconnectConsumerClient($key);
         }
-        logger()->info("refresh nsq client success.");
+//        logger()->info("refresh nsq client success.");
     }
 
     /**
@@ -273,7 +273,7 @@ class Queue extends JiyisNsqQueue
             {
                 $client->send(Packet::rdy($this->rdy));
             } catch (Exception $e) {
-                logger()->error($e->getMessage());
+//                logger()->error($e->getMessage());
                 exit(1);
             }
         }

@@ -115,11 +115,11 @@ class ClientManager extends JiyisNsqClientManager
 
                 if (!$this->producerPool[$key]->isConnected())
                 {
-                    logger()->error('Producer isn\'t connected', [
-                        'file'   => __FILE__,
-                        'line'   => __LINE__,
-                        'config' => $this->config,
-                    ]);
+//                    logger()->error('Producer isn\'t connected', [
+//                        'file'   => __FILE__,
+//                        'line'   => __LINE__,
+//                        'config' => $this->config,
+//                    ]);
 
                     unset($this->producerPool[$key]);
                     sleep($retry_wait);
@@ -129,7 +129,7 @@ class ClientManager extends JiyisNsqClientManager
             }
             catch (Exception $e)
             {
-                logger()->error('Producer cannot connect to the NSQ', [$e]);
+//                logger()->error('Producer cannot connect to the NSQ', [$e]);
                 sleep($retry_wait);
             }
         }
@@ -188,12 +188,12 @@ class ClientManager extends JiyisNsqClientManager
 
                 if (!$this->consumerPool[$key]->isConnected())
                 {
-                    logger()->error('Consumer isn\'t connected', [
-                        'file'   => __FILE__,
-                        'line'   => __LINE__,
-                        'topic'  => $this->topic,
-                        'config' => $this->config,
-                    ]);
+//                    logger()->error('Consumer isn\'t connected', [
+//                        'file'   => __FILE__,
+//                        'line'   => __LINE__,
+//                        'topic'  => $this->topic,
+//                        'config' => $this->config,
+//                    ]);
 
                     unset($this->consumerPool[$key]);
                     sleep($retry_wait);
@@ -203,7 +203,7 @@ class ClientManager extends JiyisNsqClientManager
             }
             catch (Exception $e)
             {
-                logger()->error('Consumer cannot connect to the NSQ topic/channel', [$e]);
+//                logger()->error('Consumer cannot connect to the NSQ topic/channel', [$e]);
                 sleep($retry_wait);
             }
         }
