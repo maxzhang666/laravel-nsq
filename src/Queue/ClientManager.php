@@ -10,6 +10,7 @@ use Jiyis\Nsq\Lookup\Lookup;
 use Jiyis\Nsq\Message\Packet;
 use Merkeleon\Nsq\Monitor\Consumer;
 use Jiyis\Nsq\Monitor\Producer;
+use Merkeleon\Nsq\Exception\SetupException;
 use Exception;
 
 class ClientManager extends JiyisNsqClientManager
@@ -39,7 +40,7 @@ class ClientManager extends JiyisNsqClientManager
 
     /**
      * @return ClientManager
-     * @throws Exception
+     * @throws SetupException
      */
     public function setUpProducers(): self
     {
@@ -60,7 +61,7 @@ class ClientManager extends JiyisNsqClientManager
 
         if (!$this->hasConnectedProducers())
         {
-            throw new Exception('Cannot set up producer(s)');
+            throw new SetupException('Cannot set up producer(s)');
         }
 
         return $this;
@@ -68,7 +69,7 @@ class ClientManager extends JiyisNsqClientManager
 
     /**
      * @return ClientManager
-     * @throws Exception
+     * @throws SetupException
      */
     public function setUpConsumers(): self
     {
@@ -87,7 +88,7 @@ class ClientManager extends JiyisNsqClientManager
 
         if (!$this->hasConnectedConcumers())
         {
-            throw new Exception('Cannot set up consumer(s)');
+            throw new SetupException('Cannot set up consumer(s)');
         }
 
         return $this;
