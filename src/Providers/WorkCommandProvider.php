@@ -4,7 +4,7 @@ namespace Merkeleon\Nsq\Providers;
 
 
 use Illuminate\Support\ServiceProvider;
-use Merkeleon\Nsq\Queue\WorkCommand;
+use Illuminate\Queue\Console\WorkCommand;
 
 class WorkCommandProvider extends ServiceProvider
 {
