@@ -3,6 +3,7 @@
 namespace Merkeleon\Nsq\Wire;
 
 use Exception;
+use Merkeleon\Nsq\Exception\NsqException;
 use OkStuff\PhpNsq\Message\Message;
 use Merkeleon\Nsq\Tunnel\Tunnel;
 use OkStuff\PhpNsq\Utility\IntPacker;
@@ -31,6 +32,10 @@ class Reader
         return $this;
     }
 
+    /**
+     * @return $this
+     * @throws NsqException
+     */
     public function bindFrame()
     {
         $size = 0;
@@ -39,7 +44,7 @@ class Reader
             $size = $this->readInt(4);
             $type = $this->readInt(4);
         } catch (Exception $e) {
-            throw new Exception("Error reading message frame [$size, $type] ({$e->getMessage()})");
+            throw new NsqException("Error reading message frame [$size, $type] ({$e->getMessage()})");
         }
 
         $frame = [
@@ -54,7 +59,7 @@ class Reader
                 $frame["error"] = $this->readString($size - 4);
             }
         } catch (Exception $e) {
-            throw new Exception("Error reading frame details [$size, $type] ({$e->getMessage()})");
+            throw new NsqException("Error reading frame details [$size, $type] ({$e->getMessage()})");
         }
 
         $this->frame = $frame;

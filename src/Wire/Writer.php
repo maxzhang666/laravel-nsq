@@ -14,6 +14,9 @@ use OkStuff\PhpNsq\Wire\Writer as OkStuffWriter;
 
 class Writer extends OkStuffWriter
 {
+    /**
+     * @return string
+     */
     public static function identify()
     {
         $data = func_get_arg(0);
