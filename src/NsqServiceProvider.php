@@ -20,7 +20,7 @@ class NsqServiceProvider extends ServiceProvider
         $key = 'queue.connections.nsq';
 
         $config = $this->app['config']->get($key, []);
-        $this->app['config']->set($key, array_merge($config, require __DIR__ . '/config/queue.php'));
+        $this->app['config']->set($key, array_merge(require __DIR__ . '/config/queue.php'), $config);
     }
 
     /**
