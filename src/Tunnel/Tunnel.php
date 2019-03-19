@@ -52,10 +52,10 @@ class Tunnel
     }
 
     /**
-     * @return $this
+     * @return Tunnel
      * @throws Send
      */
-    public function ready()
+    public function ready(): Tunnel
     {
 
         $this->write(Writer::rdy(1));
@@ -63,6 +63,9 @@ class Tunnel
         return $this;
     }
 
+    /**
+     * @return Config
+     */
     public function getConfig()
     {
         return $this->config;
