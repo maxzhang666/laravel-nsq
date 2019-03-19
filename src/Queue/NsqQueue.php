@@ -192,33 +192,36 @@ class NsqQueue extends Queue implements QueueContract
      */
     protected function prepareTunnelForReading($queue)
     {
-        /** @var Tunnel $tunnel */
-        $tunnel = $this->pool->getTunnel();
+        while ($this->pool->size())
+        {
+            /** @var Tunnel $tunnel */
+            $tunnel = $this->pool->getTunnel();
 
-        try
-        {
-            $tunnel->subscribe($queue)
-                   ->ready();
-        }
-        catch (SubscribeException|WriteToSocketException $e)
-        {
             try
             {
-                // Try to reconnect to socket
-                // and send ready again
-                $tunnel->shoutdown()
-                       ->subscribe($queue)
-                       ->ready();
+                return $tunnel->subscribe($queue)
+                              ->ready();
             }
-            catch (NsqException $e)
+            catch (SubscribeException|WriteToSocketException $e)
             {
-                // Kill process because we have no luck
-                // Let process manager do a full process restart
-                exit(1);
+                try
+                {
+                    // Try to reconnect to socket
+                    // and send ready again
+                    return $tunnel->shoutdown()
+                                  ->subscribe($queue)
+                                  ->ready();
+                }
+                catch (NsqException $e)
+                {
+                    $this->pool->removeTunnel($tunnel);
+                }
             }
         }
 
-        return $tunnel;
+        // Kill process because we have no luck
+        // Let process manager do a full process restart
+        exit(1);
     }
 
     /**
