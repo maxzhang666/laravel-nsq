@@ -5,7 +5,7 @@ namespace Merkeleon\Nsq\Events;
 
 use Illuminate\Queue\SerializesModels;
 
-class PushJobToQueueFailedEvent
+class FailedPublishMessageToQueueEvent
 {
     use SerializesModels;
 
@@ -25,9 +25,9 @@ class PushJobToQueueFailedEvent
 
     /**
      * @param mixed $queue
-     * @return PushJobToQueueFailedEvent
+     * @return FailedPublishMessageToQueueEvent
      */
-    public function setQueue($queue): PushJobToQueueFailedEvent
+    public function setQueue($queue): FailedPublishMessageToQueueEvent
     {
         $this->queue = $queue;
 
@@ -44,9 +44,9 @@ class PushJobToQueueFailedEvent
 
     /**
      * @param mixed $payload
-     * @return PushJobToQueueFailedEvent
+     * @return FailedPublishMessageToQueueEvent
      */
-    public function setPayload($payload): PushJobToQueueFailedEvent
+    public function setPayload($payload): FailedPublishMessageToQueueEvent
     {
         $this->payload = $payload;
 
@@ -63,9 +63,9 @@ class PushJobToQueueFailedEvent
 
     /**
      * @param mixed $exception
-     * @return PushJobToQueueFailedEvent
+     * @return FailedPublishMessageToQueueEvent
      */
-    public function setException($exception): PushJobToQueueFailedEvent
+    public function setException($exception): FailedPublishMessageToQueueEvent
     {
         $this->exception = $exception;
 
@@ -91,7 +91,7 @@ class PushJobToQueueFailedEvent
     /**
      * @param mixed $publishMethod
      */
-    public function setPublishMethod($publishMethod): PushJobToQueueFailedEvent
+    public function setPublishMethod($publishMethod): FailedPublishMessageToQueueEvent
     {
         $this->publishMethod = $publishMethod;
 
@@ -100,9 +100,9 @@ class PushJobToQueueFailedEvent
 
     /**
      * @param mixed $failedAt
-     * @return PushJobToQueueFailedEvent
+     * @return FailedPublishMessageToQueueEvent
      */
-    public function setFailedAt($failedAt): PushJobToQueueFailedEvent
+    public function setFailedAt($failedAt): FailedPublishMessageToQueueEvent
     {
         $this->failedAt = $failedAt;
 

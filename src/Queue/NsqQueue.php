@@ -5,7 +5,7 @@ namespace Merkeleon\Nsq\Queue;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use Merkeleon\Nsq\Exception\NsqException;
-use Merkeleon\Nsq\Events\PushJobToQueueFailedEvent;
+use Merkeleon\Nsq\Events\FailedPublishMessageToQueueEvent;
 use Merkeleon\Nsq\Exception\SubscribeException;
 use Merkeleon\Nsq\Exception\WriteToSocketException;
 use Merkeleon\Nsq\Jobs\NsqJob;
@@ -227,7 +227,7 @@ class NsqQueue extends Queue implements QueueContract
      */
     protected function fallbackMessage(Exception $e, $publishMethod, $message): void
     {
-        $pushSaver = new PushJobToQueueFailedEvent();
+        $pushSaver = new FailedPublishMessageToQueueEvent();
         $pushSaver->setException($e)
                   ->setFailedAt(date('Y-m-d H:i:s'))
                   ->setPayload($message)
