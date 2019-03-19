@@ -5,6 +5,7 @@ namespace Merkeleon\Nsq\Queue;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use Merkeleon\Nsq\Exception\NsqException;
+use Merkeleon\Nsq\Events\PushJobToQueueFailedEvent;
 use Merkeleon\Nsq\Exception\SubscribeException;
 use Merkeleon\Nsq\Exception\WriteToSocketException;
 use Merkeleon\Nsq\Jobs\NsqJob;
@@ -26,8 +27,8 @@ class NsqQueue extends Queue implements QueueContract
     public function __construct($nsq)
     {
         $this->reader = new Reader();
-        $this->logger = logger();
         $this->pool   = new Pool($nsq);
+        $this->logger = logger();
     }
 
     public function getLogger()
@@ -59,6 +60,8 @@ class NsqQueue extends Queue implements QueueContract
         catch (Exception $e)
         {
             $this->logger->error("publish error", ['exception' => $e]);
+
+            $this->fallbackMessage($e, __METHOD__, $message);
         }
     }
 
@@ -72,6 +75,8 @@ class NsqQueue extends Queue implements QueueContract
         catch (Exception $e)
         {
             $this->logger->error("publish error", ['exception' => $e]);
+
+            $this->fallbackMessage($e, __METHOD__, $bodies);
         }
     }
 
@@ -85,6 +90,8 @@ class NsqQueue extends Queue implements QueueContract
         catch (Exception $e)
         {
             $this->logger->error("publish error", ['exception' => $e]);
+
+            $this->fallbackMessage($e, __METHOD__, $message);
         }
     }
 
@@ -192,7 +199,9 @@ class NsqQueue extends Queue implements QueueContract
         {
             $tunnel->subscribe($queue)
                    ->ready();
-        } catch (SubscribeException|WriteToSocketException $e) {
+        }
+        catch (SubscribeException|WriteToSocketException $e)
+        {
             try
             {
                 // Try to reconnect to socket
@@ -200,7 +209,9 @@ class NsqQueue extends Queue implements QueueContract
                 $tunnel->shoutdown()
                        ->subscribe($queue)
                        ->ready();
-            } catch (NsqException $e) {
+            }
+            catch (NsqException $e)
+            {
                 // Kill process because we have no luck
                 // Let process manager do a full process restart
                 exit(1);
@@ -208,5 +219,21 @@ class NsqQueue extends Queue implements QueueContract
         }
 
         return $tunnel;
+    }
+
+    /**
+     * @param Exception $e
+     * @param $message
+     */
+    protected function fallbackMessage(Exception $e, $publishMethod, $message): void
+    {
+        $pushSaver = new PushJobToQueueFailedEvent();
+        $pushSaver->setException($e)
+                  ->setFailedAt(date('Y-m-d H:i:s'))
+                  ->setPayload($message)
+                  ->setQueue($this->topic)
+                  ->setPublishMethod($publishMethod);
+
+        event($pushSaver);
     }
 }
