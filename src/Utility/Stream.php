@@ -4,7 +4,6 @@ namespace Merkeleon\Nsq\Utility;
 
 use Merkeleon\Nsq\Exception\NsqException;
 use OkStuff\PhpNsq\Utility\Stream as OkStuffStream;
-use Exception;
 
 class Stream extends OkStuffStream
 {

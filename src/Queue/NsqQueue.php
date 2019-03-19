@@ -4,6 +4,9 @@ namespace Merkeleon\Nsq\Queue;
 
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
+use Merkeleon\Nsq\Exception\NsqException;
+use Merkeleon\Nsq\Exception\SubscribeException;
+use Merkeleon\Nsq\Exception\WriteToSocketException;
 use Merkeleon\Nsq\Jobs\NsqJob;
 use OkStuff\PhpNsq\Message\Message;
 use Merkeleon\Nsq\Tunnel\Pool;
@@ -130,11 +133,7 @@ class NsqQueue extends Queue implements QueueContract
 
     public function pop($queue = null)
     {
-        /** @var Tunnel $tunnel */
-        $tunnel = $this->pool->getTunnel();
-        $tunnel->subscribe($queue)
-               ->ready();
-
+        $tunnel = $this->prepareTunnelForReading($queue);
         $reader = $this->reader->bindTunnel($tunnel);
 
         while (true)
@@ -178,5 +177,36 @@ class NsqQueue extends Queue implements QueueContract
                 $this->logger->error("Error/unexpected frame received: ", ['reader' => $reader]);
             }
         }
+    }
+
+    /**
+     * @param $queue
+     * @return Tunnel
+     */
+    protected function prepareTunnelForReading($queue)
+    {
+        /** @var Tunnel $tunnel */
+        $tunnel = $this->pool->getTunnel();
+
+        try
+        {
+            $tunnel->subscribe($queue)
+                   ->ready();
+        } catch (SubscribeException|WriteToSocketException $e) {
+            try
+            {
+                // Try to reconnect to socket
+                // and send ready again
+                $tunnel->shoutdown()
+                       ->subscribe($queue)
+                       ->ready();
+            } catch (NsqException $e) {
+                // Kill process because we have no luck
+                // Let process manager do a full process restart
+                exit(1);
+            }
+        }
+
+        return $tunnel;
     }
 }

@@ -3,8 +3,8 @@
 
 namespace Merkeleon\Nsq\Exception;
 
-use Exception;
+use RuntimeException;
 
-class NsqException extends Exception
+class NsqException extends RuntimeException
 {
 }
