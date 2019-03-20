@@ -2,6 +2,7 @@
 
 namespace Merkeleon\Nsq\Jobs;
 
+use Carbon\Carbon;
 use Illuminate\Container\Container;
 use Illuminate\Queue\Jobs\Job;
 use Illuminate\Contracts\Queue\Job as JobContract;
@@ -72,6 +73,12 @@ class NsqJob extends Job implements JobContract
      */
     public function release($delay = 0)
     {
+        if ($delay instanceof Carbon)
+        {
+            $delay = Carbon::now()
+                           ->diffInSeconds($delay);
+        }
+
         $this->tunnel->write(Writer::req($this->getJobId(), $delay));
 
         $this->released = true;
