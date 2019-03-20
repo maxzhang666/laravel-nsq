@@ -13,10 +13,12 @@ class Pool
     /** @var SplObjectStorage */
     private $pool;
     private $nsq;
+    private $size;
 
     public function __construct($nsq)
     {
         $this->pool = new SplObjectStorage;
+        $this->size = 0;
         $this->nsq  = $nsq;
 
         $nsqd = [];
@@ -25,6 +27,7 @@ class Pool
             $nsqd = array_merge($nsqd, $this->callNsqdAddresses($lookup));
         }
 
+        // Fallback to direct nsqd address
         if (!$nsqd)
         {
             foreach (Arr::get($nsq, 'nsq.addresses', []) as $value)
@@ -36,7 +39,7 @@ class Pool
 
         foreach ($nsqd as $url => $port)
         {
-            $this->addTunnel(new Tunnel(new Config($url, $port)));
+            $this->addTunnel(new Tunnel(new Config($url, $port), Arr::get($nsq, 'identify')));
         }
     }
 
@@ -48,6 +51,7 @@ class Pool
     public function addTunnel(Tunnel $tunnel)
     {
         $this->pool->attach($tunnel);
+        $this->size++;
 
         return $this;
     }
@@ -55,21 +59,29 @@ class Pool
     public function removeTunnel(Tunnel $tunnel)
     {
         $this->pool->detach($tunnel);
+        $this->size--;
 
         return $this;
     }
 
     /**
+     * @throws \Exception
      * @return Tunnel
      */
-    public function getTunnel()
+    public function getTunnel(): Tunnel
     {
-        if ($this->pool->count() < 1)
+
+        if ($this->size === 0)
         {
             throw new NsqException('Pool is empty');
         }
+        if ($this->size === 1)
+        {
+            return $this->pool->current();
+        }
 
-        $rand = random_int(0, $this->pool->count() - 1);
+        // Get random tunnel from the pool
+        $rand = random_int(0, $this->size - 1);
 
         $this->pool->rewind();
         for ($i = 0; $i < $rand; ++$i)
@@ -77,10 +89,7 @@ class Pool
             $this->pool->next();
         }
 
-        $tunnel = $this->pool->current();
-        $tunnel->setIdentify($this->nsq['identify']);
-
-        return $tunnel;
+        return $this->pool->current();
     }
 
     /**
@@ -110,7 +119,7 @@ class Pool
         $hosts = [];
         foreach (Arr::get($data, 'producers', []) as $producer)
         {
-            $hosts[$producer['hostname']] = $producer['tcp_port'];
+            $hosts[$producer['broadcast_address']] = $producer['tcp_port'];
         }
 
         return $hosts;

@@ -20,12 +20,14 @@ class Tunnel
     protected $sock;
     protected $writer;
     protected $reader;
+    protected $identify;
 
-    public function __construct(Config $config)
+    public function __construct(Config $config, $identify)
     {
-        $this->config = $config;
-        $this->writer = [];
-        $this->reader = [];
+        $this->identify = $identify;
+        $this->config   = $config;
+        $this->writer   = [];
+        $this->reader   = [];
     }
 
     /**
@@ -37,6 +39,8 @@ class Tunnel
     {
         if ($this->subscribed !== $queue)
         {
+            // Run socket initialization
+            $this->getSock($this->identify);
             try
             {
                 $this->write(Writer::sub($queue, $channel));
@@ -57,6 +61,10 @@ class Tunnel
      */
     public function ready(): Tunnel
     {
+        if ($this->subscribed === null)
+        {
+            throw new NsqException('Tunnel should be subscribed first');
+        }
 
         $this->write(Writer::rdy(1));
 
@@ -80,7 +88,8 @@ class Tunnel
     {
         $data         = '';
         $timeout      = $this->config->get("readTimeout")["default"];
-        $this->reader = [$sock = $this->getSock()];
+        $this->reader = [$sock = $this->getSock($this->identify)];
+
         while (strlen($data) < $len)
         {
             $readable = Stream::select($this->reader, $this->writer, $timeout);
@@ -112,7 +121,8 @@ class Tunnel
     public function write($buffer)
     {
         $timeout      = $this->config->get("writeTimeout")["default"];
-        $this->writer = [$sock = $this->getSock()];
+        $this->writer = [$sock = $this->getSock($this->identify)];
+
         while ($buffer != '')
         {
             try
@@ -144,25 +154,30 @@ class Tunnel
      */
     public function shoutdown()
     {
-        try
+        if ($this->sock)
         {
-            $this->write(Writer::cls());
-            fclose($this->getSock());
-            $this->sock = null;
-        }
-        catch (\Exception $e)
-        {
-            // This exception doesn't matter
+            try
+            {
+                fclose($this->sock);
+
+                $this->sock       = null;
+                $this->subscribed = null;
+            }
+            catch (\Exception $e)
+            {
+                // This exception doesn't matter
+            }
         }
 
         return $this;
     }
 
     /**
+     * @param array $identity
      * @return resource
      * @throws SocketOpenException|WriteToSocketException
      */
-    public function getSock()
+    public function getSock($identity)
     {
         if (null === $this->sock)
         {
@@ -181,20 +196,9 @@ class Tunnel
             }
 
             $this->write(Writer::MAGIC_V2);
+            $this->write(Writer::identify($identity));
         }
 
         return $this->sock;
-    }
-
-    /**
-     * @param mixed $identity
-     * @return $this
-     * @throws Exception
-     */
-    public function setIdentify($identity)
-    {
-        $this->write(Writer::identify($identity));
-
-        return $this;
     }
 }

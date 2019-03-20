@@ -59,8 +59,6 @@ class NsqQueue extends Queue implements QueueContract
         }
         catch (Exception $e)
         {
-            $this->logger->error("publish error", ['exception' => $e]);
-
             $this->fallbackMessage($e, __METHOD__, $message);
         }
     }
@@ -74,8 +72,6 @@ class NsqQueue extends Queue implements QueueContract
         }
         catch (Exception $e)
         {
-            $this->logger->error("publish error", ['exception' => $e]);
-
             $this->fallbackMessage($e, __METHOD__, $bodies);
         }
     }
@@ -89,8 +85,6 @@ class NsqQueue extends Queue implements QueueContract
         }
         catch (Exception $e)
         {
-            $this->logger->error("publish error", ['exception' => $e]);
-
             $this->fallbackMessage($e, __METHOD__, $message);
         }
     }
@@ -162,8 +156,6 @@ class NsqQueue extends Queue implements QueueContract
                 }
                 catch (Exception $e)
                 {
-                    $this->logger->error("Will be requeued: ", ['exception' => $e]);
-
                     if ($msg)
                     {
                         $tunnel->write(Writer::touch($msg->getId()))
@@ -177,11 +169,11 @@ class NsqQueue extends Queue implements QueueContract
             }
             elseif ($reader->isOk())
             {
-                $this->logger->info('Ignoring "OK" frame in SUB loop');
+//                $this->logger->info('Ignoring "OK" frame in SUB loop');
             }
             else
             {
-                $this->logger->error("Error/unexpected frame received: ", ['reader' => $reader]);
+//                $this->logger->error("Error/unexpected frame received: ", ['reader' => $reader]);
             }
         }
     }
