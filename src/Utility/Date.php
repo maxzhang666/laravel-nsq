@@ -8,6 +8,10 @@ use DateInterval;
 
 class Date
 {
+    /**
+     * @param \DateTime|Carbon|DateInterval|int $delay
+     * @return int
+     */
     public static function convertToInt($delay): int
     {
         if ($delay instanceof Carbon)

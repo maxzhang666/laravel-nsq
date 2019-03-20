@@ -2,7 +2,6 @@
 
 namespace Merkeleon\Nsq\Jobs;
 
-use Carbon\Carbon;
 use Illuminate\Container\Container;
 use Illuminate\Queue\Jobs\Job;
 use Illuminate\Contracts\Queue\Job as JobContract;

@@ -2,7 +2,6 @@
 
 namespace Merkeleon\Nsq\Queue;
 
-use Carbon\Carbon;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use Merkeleon\Nsq\Exception\NsqException;
