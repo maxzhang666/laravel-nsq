@@ -2,6 +2,7 @@
 
 namespace Merkeleon\Nsq\Queue;
 
+use Carbon\Carbon;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use Merkeleon\Nsq\Exception\NsqException;
@@ -78,6 +79,12 @@ class NsqQueue extends Queue implements QueueContract
 
     public function publishDefer($message, $deferTime)
     {
+        if ($deferTime instanceof Carbon)
+        {
+            $deferTime = Carbon::now()
+                               ->diffInSeconds($deferTime);
+        }
+
         try
         {
             $tunnel = $this->pool->getTunnel();
