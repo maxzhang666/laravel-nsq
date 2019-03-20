@@ -1,16 +1,17 @@
 <?php
 
 return [
-    'driver'   => 'nsq',
-    'channel'  => 'web',
-    'nsq'      => [
+    'driver'    => 'nsq',
+    'topic'     => 'default', // Default topic to push to
+    'channel'   => 'web',
+    'nsq'       => [
         'addresses' => array_filter(explode(',', env('NSQSD_URL', '127.0.0.1:9150'))),
-        'logdir'     => '/tmp',
+        'logdir'    => '/tmp',
     ],
-    'nsqlookup'      => [
+    'nsqlookup' => [
         'addresses' => array_filter(explode(',', env('NSQLOOKUP_URL', '127.0.0.1:9150'))),
     ],
-    'identify' => [
+    'identify'  => [
         'user_agent' => 'merkeleon/laravel-nsq-1.10',
     ],
 ];

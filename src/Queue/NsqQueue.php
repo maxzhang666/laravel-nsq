@@ -4,6 +4,7 @@ namespace Merkeleon\Nsq\Queue;
 
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
+use Illuminate\Support\Arr;
 use Merkeleon\Nsq\Exception\NsqException;
 use Merkeleon\Nsq\Events\FailedPublishMessageToQueueEvent;
 use Merkeleon\Nsq\Exception\SubscribeException;
@@ -23,13 +24,14 @@ class NsqQueue extends Queue implements QueueContract
     private $channel;
     private $topic;
     private $reader;
-    private $logger;
+    private $cfg;
 
-    public function __construct($nsq)
+    public function __construct($cfg)
     {
+        $this->cfg    = $cfg;
         $this->reader = new Reader();
-        $this->pool   = new Pool($nsq);
-        $this->logger = logger();
+        $this->pool   = new Pool($this->cfg);
+        $this->setChannel(Arr::get($this->cfg, 'channel', 'web'));
     }
 
     public function getLogger()
@@ -46,7 +48,7 @@ class NsqQueue extends Queue implements QueueContract
 
     public function setTopic($topic)
     {
-        $this->topic = $topic;
+        $this->topic = $this->alignTopic($topic);
 
         return $this;
     }
@@ -98,6 +100,8 @@ class NsqQueue extends Queue implements QueueContract
 
     public function push($job, $data = '', $queue = null)
     {
+        $queue = $this->alignTopic($queue);
+
         return $this->pushRaw($this->createPayload($job, $queue, $data), $queue);
     }
 
@@ -108,12 +112,14 @@ class NsqQueue extends Queue implements QueueContract
 
     public function pushRaw($payload, $queue = null, array $options = [])
     {
+        $queue = $this->alignTopic($queue);
         $this->setTopic($queue)
              ->publish($payload);
     }
 
     public function later($delay, $job, $data = '', $queue = null)
     {
+        $queue = $this->alignTopic($queue);
         $this->setTopic($queue)
              ->publishDefer($this->createPayload($job, $queue, $data), $delay);
     }
@@ -125,6 +131,8 @@ class NsqQueue extends Queue implements QueueContract
 
     public function bulk($jobs, $data = '', $queue = null)
     {
+        $queue = $this->alignTopic($queue);
+
         $messages = [];
         foreach ($jobs as $job)
         {
@@ -137,6 +145,7 @@ class NsqQueue extends Queue implements QueueContract
 
     public function pop($queue = null)
     {
+        $queue  = $this->alignTopic($queue);
         $tunnel = $this->prepareTunnelForReading($queue);
         $reader = $this->reader->bindTunnel($tunnel);
 
@@ -194,7 +203,7 @@ class NsqQueue extends Queue implements QueueContract
 
             try
             {
-                return $tunnel->subscribe($queue)
+                return $tunnel->subscribe($queue, $this->channel)
                               ->ready();
             }
             catch (SubscribeException|WriteToSocketException $e)
@@ -204,7 +213,7 @@ class NsqQueue extends Queue implements QueueContract
                     // Try to reconnect to socket
                     // and send ready again
                     return $tunnel->shoutdown()
-                                  ->subscribe($queue)
+                                  ->subscribe($queue, $this->channel)
                                   ->ready();
                 }
                 catch (NsqException $e)
@@ -233,5 +242,19 @@ class NsqQueue extends Queue implements QueueContract
                   ->setPublishMethod($publishMethod);
 
         event($pushSaver);
+    }
+
+    /**
+     * @param mixed $queue
+     * @return string
+     */
+    protected function alignTopic($queue)
+    {
+        if ($queue && is_string($queue))
+        {
+            return $queue;
+        }
+
+        return Arr::get($this->cfg, 'topic', 'default');
     }
 }
