@@ -10,6 +10,7 @@ use Merkeleon\Nsq\Events\FailedPublishMessageToQueueEvent;
 use Merkeleon\Nsq\Exception\SubscribeException;
 use Merkeleon\Nsq\Exception\WriteToSocketException;
 use Merkeleon\Nsq\Jobs\NsqJob;
+use Merkeleon\Nsq\Utility\Date;
 use OkStuff\PhpNsq\Message\Message;
 use Merkeleon\Nsq\Tunnel\Pool;
 use Merkeleon\Nsq\Wire\Reader;
@@ -79,14 +80,10 @@ class NsqQueue extends Queue implements QueueContract
 
     public function publishDefer($message, $deferTime)
     {
-        if ($deferTime instanceof Carbon)
-        {
-            $deferTime = Carbon::now()
-                               ->diffInSeconds($deferTime);
-        }
-
         try
         {
+            $deferTime = Date::convertToInt($deferTime);
+
             $tunnel = $this->pool->getTunnel();
             $tunnel->write(Writer::dpub($this->topic, $deferTime, $message));
         }
