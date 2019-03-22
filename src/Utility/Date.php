@@ -32,6 +32,7 @@ class Date
             $delay -= time();
         }
 
+        $delay *= 1000;
         return (int)$delay;
     }
 }
