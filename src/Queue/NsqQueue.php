@@ -177,6 +177,8 @@ class NsqQueue extends Queue implements QueueContract
                                           ->get("defaultRequeueDelay")["default"]
                                ));
                     }
+
+                    break;
                 }
             }
             elseif ($reader->isOk())
@@ -242,6 +244,9 @@ class NsqQueue extends Queue implements QueueContract
                   ->setPublishMethod($publishMethod);
 
         event($pushSaver);
+
+        // Kill process because we have no luck publish message
+        exit(1);
     }
 
     /**
