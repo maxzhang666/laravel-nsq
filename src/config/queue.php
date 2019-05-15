@@ -12,6 +12,6 @@ return [
         'addresses' => array_filter(explode(',', env('NSQLOOKUP_URL', '127.0.0.1:9150'))),
     ],
     'identify'  => [
-        'user_agent' => 'merkeleon/laravel-nsq-1.10',
+        'user_agent' => 'merkeleon/laravel-nsq-1.13',
     ],
 ];

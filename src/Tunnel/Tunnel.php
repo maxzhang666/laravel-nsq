@@ -3,15 +3,12 @@
 namespace Merkeleon\Nsq\Tunnel;
 
 
-use Merkeleon\Nsq\Exception\NsqException;
-use Merkeleon\Nsq\Exception\ReadFromSocketException;
-use Merkeleon\Nsq\Exception\WriteToSocketException;
-use Merkeleon\Nsq\Exception\SocketOpenException;
-use Merkeleon\Nsq\Exception\SubscribeException;
-use Merkeleon\Nsq\Utility\Stream;
-use OkStuff\PhpNsq\Tunnel\Config;
-use Merkeleon\Nsq\Wire\Writer;
 use Exception;
+use Merkeleon\Nsq\Exception\
+{NsqException, ReadFromSocketException, SocketOpenException, SubscribeException, WriteToSocketException};
+use Merkeleon\Nsq\Utility\Stream;
+use Merkeleon\Nsq\Wire\Writer;
+use OkStuff\PhpNsq\Tunnel\Config;
 
 class Tunnel
 {
@@ -21,6 +18,7 @@ class Tunnel
     protected $writer;
     protected $reader;
     protected $identify;
+    protected $attempt;
 
     public function __construct(Config $config, $identify)
     {
@@ -28,6 +26,9 @@ class Tunnel
         $this->config   = $config;
         $this->writer   = [];
         $this->reader   = [];
+        $this->attempt  = 1;
+
+        $this->isReconnectAllowed();
     }
 
     /**
@@ -40,7 +41,7 @@ class Tunnel
         if ($this->subscribed !== $queue)
         {
             // Run socket initialization
-            $this->getSock($this->identify);
+            $this->getSock();
             try
             {
                 $this->write(Writer::sub($queue, $channel));
@@ -88,25 +89,33 @@ class Tunnel
     {
         $data         = '';
         $timeout      = $this->config->get("readTimeout")["default"];
-        $this->reader = [$sock = $this->getSock($this->identify)];
+        $this->reader = [$sock = $this->getSock()];
 
         while (strlen($data) < $len)
         {
-            $readable = Stream::select($this->reader, $this->writer, $timeout);
-            if ($readable > 0)
+            try
             {
-                try
+                $readable = Stream::select($this->reader, $this->writer, $timeout);
+                if ($readable > 0)
                 {
                     $buffer = Stream::recvFrom($sock, $len);
+
+                    $data .= $buffer;
+                    $len  -= strlen($buffer);
                 }
-                catch (Exception $e)
+            }
+            catch (Exception $e)
+            {
+                if ($this->isReconnectAllowed() && $this->reconnect())
                 {
-                    throw new ReadFromSocketException($e->getMessage(), $e->getCode());
+                    return $this->read($len);
                 }
-                $data .= $buffer;
-                $len  -= strlen($buffer);
+
+                throw new ReadFromSocketException($e->getMessage(), $e->getCode());
             }
         }
+
+        $this->resetAttempts();
 
         return $data;
     }
@@ -120,8 +129,9 @@ class Tunnel
      */
     public function write($buffer)
     {
+        $savedBuffer  = $buffer;
         $timeout      = $this->config->get("writeTimeout")["default"];
-        $this->writer = [$sock = $this->getSock($this->identify)];
+        $this->writer = [$sock = $this->getSock()];
 
         while ($buffer != '')
         {
@@ -135,11 +145,42 @@ class Tunnel
             }
             catch (Exception $e)
             {
+                if ($this->isReconnectAllowed() && $this->reconnect())
+                {
+                    return $this->write($savedBuffer);
+                }
+
+                $this->shoutdown();
+
                 throw new WriteToSocketException($e->getMessage(), $e->getCode());
             }
         }
 
+        $this->resetAttempts();
+
         return $this;
+    }
+
+    protected function resetAttempts()
+    {
+        return $this->attempt = 1;
+    }
+
+    protected function reconnect()
+    {
+        $this->attempt++;
+
+        $this->shoutdown();
+        $socket = $this->getSock();
+
+        return $socket;
+    }
+
+    public function isReconnectAllowed()
+    {
+        $maxAttempts = $this->config->get('maxAttempts')['default'];
+
+        return $maxAttempts < $this->attempt;
     }
 
     public function __destruct()
@@ -173,11 +214,10 @@ class Tunnel
     }
 
     /**
-     * @param array $identity
      * @return resource
      * @throws SocketOpenException|WriteToSocketException
      */
-    public function getSock($identity)
+    public function getSock()
     {
         if (null === $this->sock)
         {
@@ -196,7 +236,7 @@ class Tunnel
             }
 
             $this->write(Writer::MAGIC_V2);
-            $this->write(Writer::identify($identity));
+            $this->write(Writer::identify($this->identity));
         }
 
         return $this->sock;
