@@ -2,21 +2,20 @@
 
 namespace Merkeleon\Nsq\Queue;
 
+use Exception;
 use Illuminate\Contracts\Queue\Queue as QueueContract;
 use Illuminate\Queue\Queue;
 use Illuminate\Support\Arr;
-use Merkeleon\Nsq\Exception\NsqException;
 use Merkeleon\Nsq\Events\FailedPublishMessageToQueueEvent;
-use Merkeleon\Nsq\Exception\SubscribeException;
-use Merkeleon\Nsq\Exception\WriteToSocketException;
+use Merkeleon\Nsq\Exception\
+{NsqException, SubscribeException, WriteToSocketException};
 use Merkeleon\Nsq\Jobs\NsqJob;
+use Merkeleon\Nsq\Tunnel\
+{Pool, Tunnel};
 use Merkeleon\Nsq\Utility\Date;
-use OkStuff\PhpNsq\Message\Message;
-use Merkeleon\Nsq\Tunnel\Pool;
 use Merkeleon\Nsq\Wire\Reader;
-use Exception;
+use OkStuff\PhpNsq\Message\Message;
 use OkStuff\PhpNsq\Wire\Writer;
-use Merkeleon\Nsq\Tunnel\Tunnel;
 
 class NsqQueue extends Queue implements QueueContract
 {
@@ -224,10 +223,6 @@ class NsqQueue extends Queue implements QueueContract
                 }
             }
         }
-
-        // Kill process because we have no luck
-        // Let process manager do a full process restart
-        exit(1);
     }
 
     /**
@@ -244,9 +239,6 @@ class NsqQueue extends Queue implements QueueContract
                   ->setPublishMethod($publishMethod);
 
         event($pushSaver);
-
-        // Kill process because we have no luck publish message
-        exit(1);
     }
 
     /**

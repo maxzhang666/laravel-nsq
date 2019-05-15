@@ -58,6 +58,8 @@ class Pool
 
     public function removeTunnel(Tunnel $tunnel)
     {
+        $tunnel->shoutdown();
+
         $this->pool->detach($tunnel);
         $this->size--;
 

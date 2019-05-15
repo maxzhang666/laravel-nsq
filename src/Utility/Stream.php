@@ -25,7 +25,7 @@ class Stream extends OkStuffStream
         {
             $except = null;
 
-            $available = @stream_select($read, $write, $except, $timeout === null ? null : 0, $timeout);
+            $available = @stream_select($read, $write, $except, $timeout, $timeout);
             if ($available > 0)
             {
                 return $available;
