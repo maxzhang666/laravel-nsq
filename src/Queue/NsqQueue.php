@@ -19,15 +19,22 @@ use OkStuff\PhpNsq\Wire\Writer;
 
 class NsqQueue extends Queue implements QueueContract
 {
+    /** @var Pool */
     private $pool;
     private $channel;
     private $topic;
+    /** @var Reader */
     private $reader;
     private $cfg;
 
     public function __construct($cfg)
     {
-        $this->cfg    = $cfg;
+        $this->cfg = $cfg;
+        $this->init();
+    }
+
+    public function init()
+    {
         $this->reader = new Reader();
         $this->pool   = new Pool($this->cfg);
         $this->setChannel(Arr::get($this->cfg, 'channel', 'web'));
@@ -197,24 +204,18 @@ class NsqQueue extends Queue implements QueueContract
      */
     protected function prepareTunnelForReading($queue)
     {
-        while ($this->pool->size())
-        {
-            /** @var Tunnel $tunnel */
-            $tunnel = $this->pool->getTunnel();
+        $tunnel = null;
 
-            try
-            {
-                return $tunnel->subscribe($queue, $this->channel)
-                              ->ready();
-            }
-            catch (SubscribeException|WriteToSocketException $e)
+        do
+        {
+            while ($this->pool->size())
             {
                 try
                 {
-                    // Try to reconnect to socket
-                    // and send ready again
-                    return $tunnel->shoutdown()
-                                  ->subscribe($queue, $this->channel)
+                    /** @var Tunnel $tunnel */
+                    $tunnel = $this->pool->getTunnel();
+
+                    return $tunnel->subscribe($queue, $this->channel)
                                   ->ready();
                 }
                 catch (NsqException $e)
@@ -222,7 +223,12 @@ class NsqQueue extends Queue implements QueueContract
                     $this->pool->removeTunnel($tunnel);
                 }
             }
-        }
+
+            $this->init();
+
+        } while (!$tunnel);
+
+        return $tunnel;
     }
 
     /**

@@ -18,7 +18,6 @@ class Tunnel
     protected $writer;
     protected $reader;
     protected $identify;
-    protected $attempt;
 
     public function __construct(Config $config, $identify)
     {
@@ -26,9 +25,6 @@ class Tunnel
         $this->config   = $config;
         $this->writer   = [];
         $this->reader   = [];
-        $this->attempt  = 1;
-
-        $this->isReconnectAllowed();
     }
 
     /**
@@ -40,8 +36,6 @@ class Tunnel
     {
         if ($this->subscribed !== $queue)
         {
-            // Run socket initialization
-            $this->getSock();
             try
             {
                 $this->write(Writer::sub($queue, $channel));
@@ -87,15 +81,15 @@ class Tunnel
      */
     public function read($len = 0)
     {
-        $data         = '';
-        $timeout      = $this->config->get("readTimeout")["default"];
-        $this->reader = [$sock = $this->getSock()];
-
-        while (strlen($data) < $len)
+        try
         {
-            try
+            $data         = '';
+            $timeout      = $this->config->get("readTimeout")["default"];
+            $this->reader = [$sock = $this->getSock()];
+
+            while (strlen($data) < $len)
             {
-                $readable = Stream::select($this->reader, $this->writer, $timeout);
+                $readable = Stream::select($this->reader, $this->writer, 5);
                 if ($readable > 0)
                 {
                     $buffer = Stream::recvFrom($sock, $len);
@@ -104,18 +98,13 @@ class Tunnel
                     $len  -= strlen($buffer);
                 }
             }
-            catch (Exception $e)
-            {
-                if ($this->isReconnectAllowed() && $this->reconnect())
-                {
-                    return $this->read($len);
-                }
-
-                throw new ReadFromSocketException($e->getMessage(), $e->getCode());
-            }
         }
+        catch (Exception $e)
+        {
+            $this->shoutdown();
 
-        $this->resetAttempts();
+            throw new ReadFromSocketException($e->getMessage(), $e->getCode());
+        }
 
         return $data;
     }
@@ -129,58 +118,30 @@ class Tunnel
      */
     public function write($buffer)
     {
-        $savedBuffer  = $buffer;
-        $timeout      = $this->config->get("writeTimeout")["default"];
-        $this->writer = [$sock = $this->getSock()];
-
-        while ($buffer != '')
+        try
         {
-            try
+            $savedBuffer  = $buffer;
+            $timeout      = $this->config->get("writeTimeout")["default"];
+            $this->writer = [$sock = $this->getSock()];
+
+            while ($buffer != '')
             {
                 $writable = Stream::select($this->reader, $this->writer, $timeout);
                 if ($writable > 0)
                 {
                     $buffer = substr($buffer, Stream::sendTo($sock, $buffer));
                 }
-            }
-            catch (Exception $e)
-            {
-                if ($this->isReconnectAllowed() && $this->reconnect())
-                {
-                    return $this->write($savedBuffer);
-                }
 
-                $this->shoutdown();
-
-                throw new WriteToSocketException($e->getMessage(), $e->getCode());
             }
         }
+        catch (Exception $e)
+        {
+            $this->shoutdown();
 
-        $this->resetAttempts();
+            throw new WriteToSocketException($e->getMessage(), $e->getCode());
+        }
 
         return $this;
-    }
-
-    protected function resetAttempts()
-    {
-        return $this->attempt = 1;
-    }
-
-    protected function reconnect()
-    {
-        $this->attempt++;
-
-        $this->shoutdown();
-        $socket = $this->getSock();
-
-        return $socket;
-    }
-
-    public function isReconnectAllowed()
-    {
-        $maxAttempts = $this->config->get('maxAttempts')['default'];
-
-        return $maxAttempts < $this->attempt;
     }
 
     public function __destruct()
@@ -236,7 +197,7 @@ class Tunnel
             }
 
             $this->write(Writer::MAGIC_V2);
-            $this->write(Writer::identify($this->identity));
+            $this->write(Writer::identify($this->identify));
         }
 
         return $this->sock;
