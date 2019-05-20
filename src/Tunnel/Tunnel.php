@@ -8,38 +8,36 @@ use Merkeleon\Nsq\Exception\
 {NsqException, ReadFromSocketException, SocketOpenException, SubscribeException, WriteToSocketException};
 use Merkeleon\Nsq\Utility\Stream;
 use Merkeleon\Nsq\Wire\Writer;
-use OkStuff\PhpNsq\Tunnel\Config;
 
 class Tunnel
 {
     protected $subscribed;
-    protected $config;
     protected $sock;
     protected $writer;
     protected $reader;
-    protected $identify;
+    /** @var array $config */
+    protected $config;
 
-    public function __construct(Config $config, $identify)
+    public function __construct(array $config)
     {
-        $this->identify = $identify;
-        $this->config   = $config;
-        $this->writer   = [];
-        $this->reader   = [];
+        $this->config     = $config;
+        $this->subscribed = false;
     }
 
     /**
-     * @param $queue
+     * @param string $queue
+     * @param string $channel
      * @return Tunnel
      * @throws SubscribeException
      */
-    public function subscribe($queue, $channel = 'web')
+    public function subscribe()
     {
-        if ($this->subscribed !== $queue)
+        if (!$this->subscribed && $this->config['queue'])
         {
             try
             {
-                $this->write(Writer::sub($queue, $channel));
-                $this->subscribed = $queue;
+                $this->write(Writer::sub($this->config['queue'], $this->config['channel']));
+                $this->subscribed = true;
             }
             catch (Exception $e)
             {
@@ -51,27 +49,36 @@ class Tunnel
     }
 
     /**
-     * @return Tunnel
-     * @throws Send
+     * @param string $queue
+     * @return $this
      */
-    public function ready(): Tunnel
+    public function setQueue($queue)
     {
-        if ($this->subscribed === null)
-        {
-            throw new NsqException('Tunnel should be subscribed first');
-        }
-
-        $this->write(Writer::rdy(1));
+        $this->config['queue'] = $queue;
 
         return $this;
     }
 
     /**
-     * @return Config
+     * @return Tunnel
+     * @throws NsqException
      */
-    public function getConfig()
+    public function ready(): Tunnel
     {
-        return $this->config;
+        if ($this->subscribed)
+        {
+            $this->write(Writer::rdy($this->config['ready']));
+        }
+
+        return $this;
+    }
+
+    public function connect($queue): Tunnel
+    {
+        $this->setQueue($queue);
+        $this->getSock();
+
+        return $this;
     }
 
     /**
@@ -84,12 +91,12 @@ class Tunnel
         try
         {
             $data         = '';
-            $timeout      = $this->config->get("readTimeout")["default"];
             $this->reader = [$sock = $this->getSock()];
+            $this->writer = null;
 
             while (strlen($data) < $len)
             {
-                $readable = Stream::select($this->reader, $this->writer, 5);
+                $readable = Stream::select($this->reader, $this->writer, $this->config['timeout.read']);
                 if ($readable > 0)
                 {
                     $buffer = Stream::recvFrom($sock, $len);
@@ -120,13 +127,12 @@ class Tunnel
     {
         try
         {
-            $savedBuffer  = $buffer;
-            $timeout      = $this->config->get("writeTimeout")["default"];
             $this->writer = [$sock = $this->getSock()];
+            $this->reader = null;
 
-            while ($buffer != '')
+            while ($buffer !== '')
             {
-                $writable = Stream::select($this->reader, $this->writer, $timeout);
+                $writable = Stream::select($this->reader, $this->writer, $this->config['timeout.write']);
                 if ($writable > 0)
                 {
                     $buffer = substr($buffer, Stream::sendTo($sock, $buffer));
@@ -163,7 +169,7 @@ class Tunnel
                 fclose($this->sock);
 
                 $this->sock       = null;
-                $this->subscribed = null;
+                $this->subscribed = false;
             }
             catch (\Exception $e)
             {
@@ -182,22 +188,21 @@ class Tunnel
     {
         if (null === $this->sock)
         {
-            try
-            {
-                $this->sock = Stream::pfopen($this->config->host, $this->config->port);
-            }
-            catch (Exception $e)
-            {
-                throw new SocketOpenException($e->getMessage(), $e->getCode());
-            }
+            $this->subscribed = false;
 
-            if (false === $this->config->get("blocking"))
-            {
-                stream_set_blocking($this->sock, 0);
-            }
+            $host    = $this->config['host'];
+            $port    = $this->config['port'];
+            $timeout = $this->config['timeout.connection'];
+
+            $this->sock = Stream::pfopen($host, $port, $timeout);
+
+            stream_set_blocking($this->sock, (bool)$this->config['blocking']);
 
             $this->write(Writer::MAGIC_V2);
-            $this->write(Writer::identify($this->identify));
+            $this->write(Writer::identify($this->config['identify']));
+
+            $this->subscribe()
+                 ->ready();
         }
 
         return $this->sock;
