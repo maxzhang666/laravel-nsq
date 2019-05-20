@@ -8,7 +8,7 @@ use Illuminate\Queue\Queue;
 use Illuminate\Support\Arr;
 use Merkeleon\Nsq\Events\FailedPublishMessageToQueueEvent;
 use Merkeleon\Nsq\Exception\
-{NsqException, SubscribeException, WriteToSocketException};
+{NsqException};
 use Merkeleon\Nsq\Jobs\NsqJob;
 use Merkeleon\Nsq\Tunnel\
 {Pool, Tunnel};
@@ -21,7 +21,6 @@ class NsqQueue extends Queue implements QueueContract
 {
     /** @var Pool */
     private $pool;
-    private $channel;
     private $topic;
     /** @var Reader */
     private $reader;
@@ -37,19 +36,11 @@ class NsqQueue extends Queue implements QueueContract
     {
         $this->reader = new Reader();
         $this->pool   = new Pool($this->cfg);
-        $this->setChannel(Arr::get($this->cfg, 'channel', 'web'));
     }
 
     public function getLogger()
     {
         return logger();
-    }
-
-    public function setChannel($channel)
-    {
-        $this->channel = $channel;
-
-        return $this;
     }
 
     public function setTopic($topic)
@@ -177,58 +168,47 @@ class NsqQueue extends Queue implements QueueContract
                     if ($msg)
                     {
                         $tunnel->write(Writer::touch($msg->getId()))
-                               ->write(Writer::req(
-                                   $msg->getId(),
-                                   $tunnel->getConfig()
-                                          ->get("defaultRequeueDelay")["default"]
-                               ));
+                               ->write(Writer::req($msg->getId(), Arr::get($this->cfg, 'timeout.requeue')));
                     }
 
                     break;
                 }
-            }
-            elseif ($reader->isOk())
-            {
-//                $this->logger->info('Ignoring "OK" frame in SUB loop');
-            }
-            else
-            {
-//                $this->logger->error("Error/unexpected frame received: ", ['reader' => $reader]);
             }
         }
     }
 
     /**
      * @param $queue
+     * @throws
      * @return Tunnel
      */
     protected function prepareTunnelForReading($queue)
     {
-        $tunnel = null;
-
-        do
+        while (true)
         {
             while ($this->pool->size())
             {
+                $tunnel = null;
+
                 try
                 {
                     /** @var Tunnel $tunnel */
                     $tunnel = $this->pool->getTunnel();
+                    $tunnel->connect($queue);
 
-                    return $tunnel->subscribe($queue, $this->channel)
-                                  ->ready();
+                    return $tunnel;
                 }
                 catch (NsqException $e)
                 {
-                    $this->pool->removeTunnel($tunnel);
+                    if ($tunnel)
+                    {
+                        $this->pool->removeTunnel($tunnel);
+                    }
                 }
             }
 
             $this->init();
-
-        } while (!$tunnel);
-
-        return $tunnel;
+        }
     }
 
     /**

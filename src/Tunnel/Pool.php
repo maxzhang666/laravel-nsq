@@ -5,7 +5,6 @@ namespace Merkeleon\Nsq\Tunnel;
 
 use Illuminate\Support\Arr;
 use Merkeleon\Nsq\Exception\NsqException;
-use OkStuff\PhpNsq\Tunnel\Config;
 use SplObjectStorage;
 
 class Pool
@@ -21,25 +20,30 @@ class Pool
         $this->size = 0;
         $this->nsq  = $nsq;
 
+        $config = [
+            'timeout.connection' => Arr::get($this->nsq, 'timeout.connection'),
+            'timeout.read'       => Arr::get($this->nsq, 'timeout.read'),
+            'timeout.requeue'    => Arr::get($this->nsq, 'timeout.requeue'),
+            'timeout.write'      => Arr::get($this->nsq, 'timeout.write'),
+            'identify'           => Arr::get($this->nsq, 'identify'),
+            'blocking'           => Arr::get($this->nsq, 'blocking'),
+            'ready'              => Arr::get($this->nsq, 'ready'),
+            'channel'            => Arr::get($this->nsq, 'channel'),
+            'queue'              => null,
+        ];
+
         $nsqd = [];
         foreach (Arr::get($nsq, 'nsqlookup.addresses', []) as $lookup)
         {
             $nsqd = array_merge($nsqd, $this->callNsqdAddresses($lookup));
         }
 
-        // Fallback to direct nsqd address
-        if (!$nsqd)
-        {
-            foreach (Arr::get($nsq, 'nsq.addresses', []) as $value)
-            {
-                [$url, $port] = explode(':', $value);
-                $nsqd[$url] = $port;
-            }
-        }
-
         foreach ($nsqd as $url => $port)
         {
-            $this->addTunnel(new Tunnel(new Config($url, $port), Arr::get($nsq, 'identify')));
+            $config['host'] = $url;
+            $config['port'] = $port;
+
+            $this->addTunnel(new Tunnel($config));
         }
     }
 
@@ -72,26 +76,31 @@ class Pool
      */
     public function getTunnel(): Tunnel
     {
-
         if ($this->size === 0)
         {
             throw new NsqException('Pool is empty');
         }
         if ($this->size === 1)
         {
-            return $this->pool->current();
+            /** @var Tunnel $tunnel */
+            $tunnel = $this->pool->current();
         }
-
-        // Get random tunnel from the pool
-        $rand = random_int(0, $this->size - 1);
-
-        $this->pool->rewind();
-        for ($i = 0; $i < $rand; ++$i)
+        else
         {
-            $this->pool->next();
+            // Get random tunnel from the pool
+            $rand = random_int(0, $this->size - 1);
+
+            $this->pool->rewind();
+            for ($i = 0; $i < $rand; ++$i)
+            {
+                $this->pool->next();
+            }
+
+            /** @var Tunnel $tunnel */
+            $tunnel = $this->pool->current();
         }
 
-        return $this->pool->current();
+        return $tunnel;
     }
 
     /**
