@@ -55,6 +55,7 @@ class NsqQueue extends Queue implements QueueContract
         try
         {
             $tunnel = $this->pool->getTunnel();
+            $tunnel->connect($this->topic);
             $tunnel->write(Writer::pub($this->topic, $message));
         }
         catch (Exception $e)
@@ -68,6 +69,7 @@ class NsqQueue extends Queue implements QueueContract
         try
         {
             $tunnel = $this->pool->getTunnel();
+            $tunnel->connect($this->topic);
             $tunnel->write(Writer::mpub($this->topic, $bodies));
         }
         catch (Exception $e)
@@ -83,6 +85,7 @@ class NsqQueue extends Queue implements QueueContract
             $deferTime = Date::convertToInt($deferTime);
 
             $tunnel = $this->pool->getTunnel();
+            $tunnel->connect($this->topic);
             $tunnel->write(Writer::dpub($this->topic, $deferTime, $message));
         }
         catch (Exception $e)
