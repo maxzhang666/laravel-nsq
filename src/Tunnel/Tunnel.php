@@ -108,7 +108,7 @@ class Tunnel
         }
         catch (Exception $e)
         {
-            $this->shoutdown();
+            $this->shutdown();
 
             throw new ReadFromSocketException($e->getMessage(), $e->getCode());
         }
@@ -149,7 +149,7 @@ class Tunnel
             }
             catch (Exception $e)
             {
-                $this->shoutdown();
+                $this->shutdown();
             }
         }
 
@@ -158,7 +158,7 @@ class Tunnel
 
     public function __destruct()
     {
-        $this->shoutdown();
+        $this->shutdown();
     }
 
     /**
@@ -166,7 +166,7 @@ class Tunnel
      *
      * @return Tunnel
      */
-    public function shoutdown()
+    public function shutdown()
     {
         if ($this->sock)
         {
