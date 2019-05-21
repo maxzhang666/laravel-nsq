@@ -125,29 +125,35 @@ class Tunnel
      */
     public function write($buffer)
     {
-        try
-        {
-            $this->writer = [$sock = $this->getSock()];
-            $this->reader = null;
+        $attempts = $this->config['attempts.write'];
 
-            while ($buffer !== '')
+        while ($attempts > 0)
+        {
+            --$attempts;
+
+            try
             {
-                $writable = Stream::select($this->reader, $this->writer, $this->config['timeout.write']);
-                if ($writable > 0)
+                $this->writer = [$sock = $this->getSock()];
+                $this->reader = null;
+
+                while ($buffer !== '')
                 {
-                    $buffer = substr($buffer, Stream::sendTo($sock, $buffer));
+                    $writable = Stream::select($this->reader, $this->writer, $this->config['timeout.write']);
+                    if ($writable > 0)
+                    {
+                        $buffer = substr($buffer, Stream::sendTo($sock, $buffer));
+                    }
                 }
 
+                return $this;
+            }
+            catch (Exception $e)
+            {
+                $this->shoutdown();
             }
         }
-        catch (Exception $e)
-        {
-            $this->shoutdown();
 
-            throw new WriteToSocketException($e->getMessage(), $e->getCode());
-        }
-
-        return $this;
+        throw new WriteToSocketException($e->getMessage(), $e->getCode());
     }
 
     public function __destruct()

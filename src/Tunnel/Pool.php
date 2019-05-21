@@ -28,6 +28,7 @@ class Pool
             'identify'           => Arr::get($this->nsq, 'identify'),
             'blocking'           => Arr::get($this->nsq, 'blocking'),
             'ready'              => Arr::get($this->nsq, 'ready'),
+            'attempts.write'     => Arr::get($this->nsq, 'attempts.write'),
             'channel'            => Arr::get($this->nsq, 'channel'),
             'queue'              => null,
         ];
