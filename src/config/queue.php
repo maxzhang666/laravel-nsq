@@ -12,7 +12,7 @@ return [
         'addresses' => array_filter(explode(',', env('NSQLOOKUP_URL', '127.0.0.1:9150'))),
     ],
     'identify'   => [
-        'user_agent' => env('NSQ_USER_AGENT', 'merkeleon/laravel-nsq-1.15'),
+        'user_agent' => env('NSQ_USER_AGENT', 'merkeleon/laravel-nsq-1.17'),
     ],
     'timeout'    => [
         'connection' => env('NSQ_CONNECTION_TIMEOUT', 5), // seconds
@@ -22,4 +22,7 @@ return [
     ],
     'blocking'   => env('NSQ_BLOCKING_MODE', true), // Open socket in blocking mode
     'ready'      => env('NSQ_MESSAGES_READY', 1), // How many messages read from queue per call
+    'attempts' => [
+        'write' => env('NSQ_WRITE_ATTEMPTS', 3), // Number of attempts for write message into the queue before it throw exception
+    ]
 ];
