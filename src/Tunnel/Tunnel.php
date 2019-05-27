@@ -108,6 +108,9 @@ class Tunnel
         }
         catch (Exception $e)
         {
+            logger()->error($e->getMessage(), ['exception' => $e]);
+            report($e);
+
             $this->shutdown();
 
             throw new ReadFromSocketException($e->getMessage(), $e->getCode());
@@ -149,6 +152,9 @@ class Tunnel
             }
             catch (Exception $e)
             {
+                logger()->error($e->getMessage(), ['exception' => $e]);
+                report($e);
+
                 $this->shutdown();
             }
         }

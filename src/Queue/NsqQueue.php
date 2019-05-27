@@ -38,11 +38,6 @@ class NsqQueue extends Queue implements QueueContract
         $this->pool   = new Pool($this->cfg);
     }
 
-    public function getLogger()
-    {
-        return logger();
-    }
-
     public function setTopic($topic)
     {
         $this->topic = $this->alignTopic($topic);
@@ -72,7 +67,10 @@ class NsqQueue extends Queue implements QueueContract
         }
         catch (Exception $e)
         {
-            $this->fallbackMessage($e, __METHOD__, $bodies);
+            foreach ($bodies as $message)
+            {
+                $this->fallbackMessage($e, __METHOD__, $message);
+            }
         }
     }
 
@@ -109,14 +107,12 @@ class NsqQueue extends Queue implements QueueContract
 
     public function pushRaw($payload, $queue = null, array $options = [])
     {
-        $queue = $this->alignTopic($queue);
         $this->setTopic($queue)
              ->publish($payload);
     }
 
     public function later($delay, $job, $data = '', $queue = null)
     {
-        $queue = $this->alignTopic($queue);
         $this->setTopic($queue)
              ->publishDefer($this->createPayload($job, $queue, $data), $delay);
     }
@@ -189,7 +185,6 @@ class NsqQueue extends Queue implements QueueContract
             while ($this->pool->size())
             {
                 $tunnel = null;
-
                 try
                 {
                     /** @var Tunnel $tunnel */
