@@ -12,7 +12,7 @@ return [
         'addresses' => array_filter(explode(',', env('NSQLOOKUP_URL', '127.0.0.1:9150'))),
     ],
     'identify'   => [
-        'user_agent' => env('NSQ_USER_AGENT', 'merkeleon/laravel-nsq-1.17'),
+        'user_agent' => env('NSQ_USER_AGENT', 'merkeleon/laravel-nsq-1.18'),
     ],
     'timeout'    => [
         'connection' => env('NSQ_CONNECTION_TIMEOUT', 5), // seconds
