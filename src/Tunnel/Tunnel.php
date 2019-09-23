@@ -11,6 +11,11 @@ use Merkeleon\Nsq\Wire\Writer;
 
 class Tunnel
 {
+    public const STATE_UNKNOWN = 0;
+    public const STATE_WRITE   = 1;
+    public const STATE_READ    = 2;
+
+    protected $connected;
     protected $subscribed;
     protected $sock;
     protected $writer;
@@ -22,6 +27,7 @@ class Tunnel
     {
         $this->config     = $config;
         $this->subscribed = false;
+        $this->connected  = false;
     }
 
     /**
@@ -48,6 +54,11 @@ class Tunnel
         return $this;
     }
 
+    public function isConnected(): bool
+    {
+        return $this->connected;
+    }
+
     /**
      * @param string $queue
      * @return $this
@@ -65,7 +76,7 @@ class Tunnel
      */
     public function ready(): Tunnel
     {
-        if ($this->subscribed)
+        if ($this->isConnected() && $this->subscribed)
         {
             $this->write(Writer::rdy($this->config['ready']));
         }
@@ -179,15 +190,16 @@ class Tunnel
             try
             {
                 fclose($this->sock);
-
-                $this->sock       = null;
-                $this->subscribed = false;
             }
             catch (\Exception $e)
             {
                 // This exception doesn't matter
             }
         }
+
+        $this->sock       = null;
+        $this->subscribed = false;
+        $this->connected  = false;
 
         return $this;
     }
@@ -198,7 +210,7 @@ class Tunnel
      */
     public function getSock()
     {
-        if (null === $this->sock)
+        if (!$this->sock)
         {
             $this->subscribed = false;
 
@@ -207,6 +219,8 @@ class Tunnel
             $timeout = $this->config['timeout.connection'];
 
             $this->sock = Stream::pfopen($host, $port, $timeout);
+
+            $this->connected = true;
 
             stream_set_blocking($this->sock, (bool)$this->config['blocking']);
 

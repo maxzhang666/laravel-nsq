@@ -9,7 +9,7 @@ class Stream
 {
     public static function pfopen($host, $port, $timeout)
     {
-        $socket = pfsockopen($host, $port, $errno, $errstr, $timeout);
+        $socket = fsockopen($host, $port, $errno, $errstr, $timeout);
         if (false === $socket)
         {
             throw new ConnectionException("Could not connect to {$host}:{$port} [{$errno}]:[{$errstr}]");

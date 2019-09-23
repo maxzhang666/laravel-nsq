@@ -13,6 +13,8 @@ return [
     ],
     'identify'   => [
         'user_agent' => env('NSQ_USER_AGENT', 'merkeleon/laravel-nsq-1.18'),
+        'heartbeat_interval' => 60 * 1000, // ms
+        'output_buffer_timeout' => 250, // the timeout after which any data that nsqd has buffered will be flushed to this client.
     ],
     'timeout'    => [
         'connection' => env('NSQ_CONNECTION_TIMEOUT', 5), // seconds

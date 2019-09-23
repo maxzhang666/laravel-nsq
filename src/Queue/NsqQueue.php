@@ -28,6 +28,7 @@ class NsqQueue extends Queue implements QueueContract
 
     public function __construct($cfg)
     {
+        dump('NsqQueue:construct');
         $this->cfg = $cfg;
         $this->init();
     }
@@ -82,6 +83,7 @@ class NsqQueue extends Queue implements QueueContract
 
             $tunnel = $this->pool->getTunnel();
             $tunnel->write(Writer::dpub($this->topic, $deferTime, $message));
+            $tunnel->shutdown();
         }
         catch (Exception $e)
         {
