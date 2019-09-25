@@ -13,13 +13,12 @@ return [
     ],
     'identify'   => [
         'user_agent' => env('NSQ_USER_AGENT', 'merkeleon/laravel-nsq-1.18'),
-        'heartbeat_interval' => 60 * 1000, // ms
-        'output_buffer_timeout' => 250, // the timeout after which any data that nsqd has buffered will be flushed to this client.
+        'heartbeat_interval' => 60000,
     ],
     'timeout'    => [
-        'connection' => env('NSQ_CONNECTION_TIMEOUT', 5), // seconds
+        'connection' => env('NSQ_CONNECTION_TIMEOUT', 2), // seconds
         'read'       => env('NSQ_READ_TIMEOUT', null), // seconds; use NULL for blocking mode (default),
-        'write'      => env('NSQ_WRITE_TIMEOUT', null), // seconds; use NULL for blocking mode (default),
+        'write'      => env('NSQ_WRITE_TIMEOUT', 2), // seconds; use NULL for blocking mode (default),
         'requeue'    => env('NSQ_REQUEUE_TIMEOUT', 10), // seconds,,
     ],
     'blocking'   => env('NSQ_BLOCKING_MODE', true), // Open socket in blocking mode

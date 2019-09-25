@@ -28,7 +28,6 @@ class NsqQueue extends Queue implements QueueContract
 
     public function __construct($cfg)
     {
-        dump('NsqQueue:construct');
         $this->cfg = $cfg;
         $this->init();
     }
@@ -50,10 +49,10 @@ class NsqQueue extends Queue implements QueueContract
     {
         try
         {
-            $tunnel = $this->pool->getTunnel();
-            $tunnel->write(Writer::pub($this->topic, $message));
+            $producer = $this->pool->getProducer();
+            $producer->write(Writer::pub($this->topic, $message));
         }
-        catch (Exception $e)
+        catch (\Throwable $e)
         {
             $this->fallbackMessage($e, __METHOD__, $message);
         }
@@ -63,10 +62,10 @@ class NsqQueue extends Queue implements QueueContract
     {
         try
         {
-            $tunnel = $this->pool->getTunnel();
-            $tunnel->write(Writer::mpub($this->topic, $bodies));
+            $producer = $this->pool->getProducer();
+            $producer->write(Writer::mpub($this->topic, $bodies));
         }
-        catch (Exception $e)
+        catch (\Throwable $e)
         {
             foreach ($bodies as $message)
             {
@@ -81,11 +80,10 @@ class NsqQueue extends Queue implements QueueContract
         {
             $deferTime = Date::convertToInt($deferTime);
 
-            $tunnel = $this->pool->getTunnel();
-            $tunnel->write(Writer::dpub($this->topic, $deferTime, $message));
-            $tunnel->shutdown();
+            $producer = $this->pool->getProducer();
+            $producer->write(Writer::dpub($this->topic, $deferTime, $message));
         }
-        catch (Exception $e)
+        catch (\Throwable $e)
         {
             $this->fallbackMessage($e, __METHOD__, $message);
         }

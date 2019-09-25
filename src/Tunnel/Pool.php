@@ -5,15 +5,21 @@ namespace Merkeleon\Nsq\Tunnel;
 
 use Illuminate\Support\Arr;
 use Merkeleon\Nsq\Exception\NsqException;
+use Merkeleon\Nsq\Wire\Writer;
 use SplObjectStorage;
 
 class Pool
 {
     /** @var SplObjectStorage */
     private $pool;
+    private $producerTunnel;
     private $nsq;
     private $size;
 
+    /**
+     * Pool constructor.
+     * @param $nsq
+     */
     public function __construct($nsq)
     {
         $this->pool = new SplObjectStorage;
@@ -21,17 +27,20 @@ class Pool
         $this->nsq  = $nsq;
 
         $config = [
-            'timeout.connection' => Arr::get($this->nsq, 'timeout.connection'),
-            'timeout.read'       => Arr::get($this->nsq, 'timeout.read'),
+            'timeout.connection' => Arr::get($this->nsq, 'timeout.connection', 2),
             'timeout.requeue'    => Arr::get($this->nsq, 'timeout.requeue'),
-            'timeout.write'      => Arr::get($this->nsq, 'timeout.write'),
             'identify'           => Arr::get($this->nsq, 'identify'),
             'blocking'           => Arr::get($this->nsq, 'blocking'),
             'ready'              => Arr::get($this->nsq, 'ready'),
-            'attempts.write'     => Arr::get($this->nsq, 'attempts.write'),
+            'attempts.write'     => Arr::get($this->nsq, 'attempts.write', 3),
             'channel'            => Arr::get($this->nsq, 'channel'),
             'queue'              => null,
         ];
+
+
+        $addresses = Arr::get($nsq, 'nsq.addresses', []);
+        [$host, $port] = explode(':', $addresses[array_rand($addresses)]);
+        $this->producerTunnel = Tunnel::make($config + ['host' => $host, 'port' => $port], Tunnel::STATE_WRITE);
 
         $nsqd = [];
         foreach (Arr::get($nsq, 'nsqlookup.addresses', []) as $lookup)
@@ -44,16 +53,67 @@ class Pool
             $config['host'] = $url;
             $config['port'] = $port;
 
-            $this->addTunnel(new Tunnel($config));
+            $this->addTunnel(Tunnel::make($config, Tunnel::STATE_READ));
         }
+
+        $this->periodicSocketsPing();
     }
 
+    /**
+     * Function pings sockets periodically
+     * to keep connections
+     */
+    public function periodicSocketsPing(): void
+    {
+        $heardBeatTime = Arr::get($this->nsq, 'identify.heartbeat_interval', 20000) / 1000;
+
+        pcntl_async_signals(true);
+        pcntl_alarm($heardBeatTime / 2);
+
+        $this->mask = pcntl_sigprocmask(SIG_BLOCK, [SIGALRM]);
+
+        pcntl_signal(SIGALRM, function ($signo, $diginfo) use ($heardBeatTime) {
+            $size = $this->size();
+            if ($size > 0)
+            {
+                $this->pool->rewind();
+
+                /** @var ConsumerTunnel $tunnel */
+                while ($tunnel = $this->pool->current())
+                {
+                    if ($tunnel->isConnected())
+                    {
+                        $tunnel->write(Writer::nop());
+                    }
+
+                    $this->pool->next();
+                }
+            }
+
+            if ($this->producerTunnel->isConnected())
+            {
+                $this->producerTunnel->write(Writer::nop());
+            }
+
+            pcntl_alarm($heardBeatTime);
+        });
+
+        pcntl_sigprocmask(SIG_UNBLOCK, [SIGALRM]);
+    }
+
+    /**
+     * @return int
+     */
     public function size()
     {
         return $this->pool->count();
     }
 
-    public function addTunnel(Tunnel $tunnel)
+    /**
+     * @param Tunnel $tunnel
+     * @return Pool
+     */
+    public function addTunnel(Tunnel $tunnel): Pool
     {
         $this->pool->attach($tunnel);
         $this->size++;
@@ -61,7 +121,11 @@ class Pool
         return $this;
     }
 
-    public function removeTunnel(Tunnel $tunnel)
+    /**
+     * @param Tunnel $tunnel
+     * @return Pool
+     */
+    public function removeTunnel(Tunnel $tunnel): Pool
     {
         $tunnel->shutdown();
 
@@ -72,6 +136,14 @@ class Pool
     }
 
     /**
+     * @return ProducerTunnel|null
+     */
+    public function getProducer(): ?ProducerTunnel
+    {
+        return $this->producerTunnel;
+    }
+
+    /**
      * @throws \Exception
      * @return Tunnel
      */
@@ -79,7 +151,7 @@ class Pool
     {
         if ($this->size === 0)
         {
-            throw new NsqException('Pool is empty');
+            throw new NsqException('There are no more active tunnels');
         }
         if ($this->size === 1)
         {
