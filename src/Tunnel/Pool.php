@@ -153,25 +153,18 @@ class Pool
         {
             throw new NsqException('There are no more active tunnels');
         }
-        if ($this->size === 1)
-        {
-            /** @var Tunnel $tunnel */
-            $tunnel = $this->pool->current();
-        }
-        else
-        {
-            // Get random tunnel from the pool
-            $rand = random_int(0, $this->size - 1);
 
-            $this->pool->rewind();
-            for ($i = 0; $i < $rand; ++$i)
-            {
-                $this->pool->next();
-            }
+        // Get random tunnel from the pool
+        $rand = random_int(0, $this->size - 1);
 
-            /** @var Tunnel $tunnel */
-            $tunnel = $this->pool->current();
+        $this->pool->rewind();
+        for ($i = 0; $i < $rand; ++$i)
+        {
+            $this->pool->next();
         }
+
+        /** @var Tunnel $tunnel */
+        $tunnel = $this->pool->current();
 
         return $tunnel;
     }

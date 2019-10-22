@@ -3,40 +3,50 @@
 namespace Merkeleon\Nsq;
 
 
-use Merkeleon\Nsq\Providers\WorkCommandProvider;
-use Merkeleon\Nsq\Queue\Connector;
-use Illuminate\Queue\QueueManager;
-use Illuminate\Support\ServiceProvider;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Queue\QueueServiceProvider;
+use Merkeleon\Nsq\Queue\Connector as NsqConnector;
+use Merkeleon\Nsq\Queue\Worker;
 
-class NsqServiceProvider extends ServiceProvider
+class NsqServiceProvider extends QueueServiceProvider
 {
     /**
-     * Register the service provider.
+     * Register the connectors on the queue manager.
      *
+     * @param  \Illuminate\Queue\QueueManager  $manager
      * @return void
      */
-    public function register()
+    public function registerConnectors($manager)
     {
-        $key = 'queue.connections.nsq';
+        parent::registerConnectors($manager);
 
-        $config = $this->app['config']->get($key, []);
-        $this->app['config']->set($key, array_merge(require __DIR__ . '/config/queue.php'), $config);
+        $this->registerNsqConnector($manager);
     }
 
     /**
-     * Register the application's event listeners.
+     * Register the connectors on the queue manager.
+     *
+     * @param  \Illuminate\Queue\QueueManager  $manager
+     * @return \Illuminate\Queue\Connectors\ConnectorInterface
+     */
+    public function registerNsqConnector($manager)
+    {
+        $manager->addConnector('nsq', function () {
+            return new NsqConnector($this->app['nsq']);
+        });
+    }
+
+    /**
+     * Register the queue worker.
      *
      * @return void
      */
-    public function boot()
+    protected function registerWorker()
     {
-        /** @var QueueManager $queue */
-        $queue = $this->app['queue'];
-
-        $queue->addConnector('nsq', function () {
-            return new Connector();
+        $this->app->singleton('queue.worker', function () {
+            return new Worker(
+                $this->app['queue'], $this->app['events'], $this->app[ExceptionHandler::class]
+            );
         });
-        // add defer provider, rebind work command
-        $this->app->addDeferredServices([WorkCommandProvider::class]);
     }
 }
