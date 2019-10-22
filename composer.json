@@ -1,5 +1,5 @@
 {
-  "name": "romikring/laravel-nsq",
+  "name": "merkeleon/laravel-nsq",
   "description": "Laravel NSQ",
   "require": {
     "php": "^7.1.3",
