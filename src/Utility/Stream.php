@@ -61,7 +61,7 @@ class Stream
             $available = @stream_select($read, $write, $except, $timeout);
             if ($available === false)
             {
-                throw new NsqException("stream_select() failed : " . \json_encode($streamPool));
+                throw new NsqException("stream_select() failed : " . \json_encode($streamPool), NsqException::TIMEOUT);
             }
         }
 

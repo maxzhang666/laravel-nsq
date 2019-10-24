@@ -65,6 +65,12 @@ class Pool
      */
     public function periodicSocketsPing(): void
     {
+        // Function should work if PCNTL is enabled only
+        if (!extension_loaded('pcntl'))
+        {
+            return;
+        }
+
         $heardBeatTime = Arr::get($this->nsq, 'identify.heartbeat_interval', 20000) / 1000;
 
         pcntl_async_signals(true);

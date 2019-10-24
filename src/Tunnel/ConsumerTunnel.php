@@ -123,7 +123,7 @@ class ConsumerTunnel extends ProducerTunnel
             $sock    = $this->getSock();
             $reader  = [$sock];
             $writer  = null;
-            $timeout = Arr::get($this->config, 'identify.heartbeat_interval', 20000) / 1000;
+            $timeout = Arr::get($this->config, 'identify.heartbeat_interval', 20000) / 1000 * 2;
 
             while (strlen($data) < $len)
             {
@@ -145,8 +145,8 @@ class ConsumerTunnel extends ProducerTunnel
         }
         catch (\Throwable $e)
         {
-            logger()->error($e->getMessage(), ['exception' => $e]);
-            report($e);
+//            logger()->error($e->getMessage(), ['exception' => $e]);
+//            report($e);
 
             $this->shutdown();
 

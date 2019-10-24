@@ -38,14 +38,8 @@ class Reader
      */
     public function bindFrame()
     {
-        $size = 0;
-        $type = 0;
-        try {
-            $size = $this->readInt(4);
-            $type = $this->readInt(4);
-        } catch (Exception $e) {
-            throw new NsqException("Error reading message frame [$size, $type] ({$e->getMessage()})");
-        }
+        $size = $this->readInt(4);
+        $type = $this->readInt(4);
 
         $frame = [
             "size" => $size,
