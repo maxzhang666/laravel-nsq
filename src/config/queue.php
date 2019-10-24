@@ -18,7 +18,7 @@ return [
     'timeout'    => [
         'connection' => env('NSQ_CONNECTION_TIMEOUT', 2), // seconds
         'read'       => env('NSQ_READ_TIMEOUT', null), // seconds; use NULL for blocking mode (default),
-        'write'      => env('NSQ_WRITE_TIMEOUT', ), // seconds; use NULL for blocking mode (default),
+        'write'      => env('NSQ_WRITE_TIMEOUT', 2), // seconds; use NULL for blocking mode (default),
         'requeue'    => env('NSQ_REQUEUE_TIMEOUT', 10), // seconds,
 
     ],
