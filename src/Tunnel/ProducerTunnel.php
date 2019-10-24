@@ -72,8 +72,8 @@ class ProducerTunnel extends Tunnel
             }
             catch (\Throwable $e)
             {
-                logger()->error($e->getMessage(), ['exception' => $e]);
-                report($e);
+//                logger()->error($e->getMessage(), ['exception' => $e]);
+//                report($e);
 
                 $this->shutdown();
             }

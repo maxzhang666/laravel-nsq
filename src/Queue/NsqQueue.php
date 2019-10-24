@@ -144,7 +144,14 @@ class NsqQueue extends Queue implements QueueContract
 
         while (true)
         {
-            $reader->bindFrame();
+            try
+            {
+                $reader->bindFrame();
+            }
+            catch (\Throwable $e)
+            {
+                continue;
+            }
 
             if ($reader->isHeartbeat())
             {

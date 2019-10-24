@@ -65,6 +65,12 @@ class Pool
      */
     public function periodicSocketsPing(): void
     {
+        // Function should work if PCNTL is enabled only
+        if (!extension_loaded('pcntl'))
+        {
+            return;
+        }
+
         $heardBeatTime = Arr::get($this->nsq, 'identify.heartbeat_interval', 20000) / 1000;
 
         pcntl_async_signals(true);
@@ -153,25 +159,18 @@ class Pool
         {
             throw new NsqException('There are no more active tunnels');
         }
-        if ($this->size === 1)
-        {
-            /** @var Tunnel $tunnel */
-            $tunnel = $this->pool->current();
-        }
-        else
-        {
-            // Get random tunnel from the pool
-            $rand = random_int(0, $this->size - 1);
 
-            $this->pool->rewind();
-            for ($i = 0; $i < $rand; ++$i)
-            {
-                $this->pool->next();
-            }
+        // Get random tunnel from the pool
+        $rand = random_int(0, $this->size - 1);
 
-            /** @var Tunnel $tunnel */
-            $tunnel = $this->pool->current();
+        $this->pool->rewind();
+        for ($i = 0; $i < $rand; ++$i)
+        {
+            $this->pool->next();
         }
+
+        /** @var Tunnel $tunnel */
+        $tunnel = $this->pool->current();
 
         return $tunnel;
     }
