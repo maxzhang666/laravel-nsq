@@ -51,8 +51,15 @@ class NsqServiceProvider extends QueueServiceProvider
     protected function registerWorker()
     {
         $this->app->singleton('queue.worker', function () {
+            $isDownForMaintenance = function () {
+                return $this->app->isDownForMaintenance();
+            };
+
             return new Worker(
-                $this->app['queue'], $this->app['events'], $this->app[ExceptionHandler::class]
+                $this->app['queue'],
+                $this->app['events'],
+                $this->app[ExceptionHandler::class],
+                $isDownForMaintenance
             );
         });
     }
