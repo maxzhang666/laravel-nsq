@@ -19,9 +19,8 @@ class WorkCommandProvider extends ServiceProvider
     {
         // rebind queue console command
         $this->app->singleton('command.queue.work', function ($app) {
-            return new WorkCommand($app['queue.worker']);
+            return new WorkCommand($app['queue.worker'], $app['cache.store']);
         });
-
     }
 
     /**
