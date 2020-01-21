@@ -168,7 +168,7 @@ class NsqQueue extends Queue implements QueueContract
                 }
                 catch (Exception $e)
                 {
-                    if ($msg)
+                    if (isset($msg))
                     {
                         $tunnel->write(Writer::touch($msg->getId()))
                                ->write(Writer::req($msg->getId(), Arr::get($this->cfg, 'timeout.requeue')));
