@@ -173,6 +173,10 @@ class NsqQueue extends Queue implements QueueContract
                         $tunnel->write(Writer::touch($msg->getId()))
                                ->write(Writer::req($msg->getId(), Arr::get($this->cfg, 'timeout.requeue')));
                     }
+                    else 
+                    {
+                        report($e);
+                    }
 
                     break;
                 }
