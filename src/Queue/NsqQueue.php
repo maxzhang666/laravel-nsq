@@ -150,6 +150,8 @@ class NsqQueue extends Queue implements QueueContract
             }
             catch (\Throwable $e)
             {
+                report($e);
+
                 continue;
             }
 
