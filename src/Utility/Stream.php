@@ -3,7 +3,8 @@
 namespace Merkeleon\Nsq\Utility;
 
 use Merkeleon\Nsq\Exception\
-{ConnectionException, NsqException, WriteToSocketException};
+{ConnectionException, NsqException, WriteToSocketException
+};
 use Illuminate\Support\Facades\Log;
 
 class Stream
@@ -11,14 +12,12 @@ class Stream
     public static function pfopen($host, $port, $timeout)
     {
         try {
-
-        $socket = fsockopen($host, $port, $errno, $errstr, $timeout);
-        }catch (\Exception $e){
-            Log::error('pfopen error', [$host,$port,$errno,$errstr]);
+            $socket = fsockopen($host, $port, $errno, $errstr, $timeout);
+        } catch (\Exception $e) {
+            Log::error('pfopen error', [$host, $port, $errno, $errstr]);
             throw new ConnectionException("Could not connect to {$host}:{$port} [{$errno}]:[{$errstr}]");
         }
-        if (false === $socket)
-        {
+        if (false === $socket) {
             throw new ConnectionException("Could not connect to {$host}:{$port} [{$errno}]:[{$errstr}]");
         }
 
@@ -28,8 +27,7 @@ class Stream
     public static function sendTo($socket, $buffer)
     {
         $written = @stream_socket_sendto($socket, $buffer);
-        if (0 >= $written)
-        {
+        if (0 >= $written) {
             throw new WriteToSocketException("Could not write " . strlen($buffer) . " bytes to {$socket}");
         }
 
@@ -39,8 +37,7 @@ class Stream
     public static function recvFrom($socket, $length)
     {
         $buffer = @stream_socket_recvfrom($socket, $length);
-        if (empty($buffer))
-        {
+        if (empty($buffer)) {
             throw new WriteToSocketException("Read 0 bytes from {$socket}");
         }
 
@@ -50,7 +47,7 @@ class Stream
     /**
      * @param array $read
      * @param array $write
-     * @param $timeout
+     * @param       $timeout
      * @return int
      * @throws NsqException
      */
@@ -61,13 +58,11 @@ class Stream
             "write" => $write,
         ];
 
-        if ($read || $write)
-        {
+        if ($read || $write) {
             $except = null;
 
             $available = @stream_select($read, $write, $except, $timeout);
-            if ($available === false)
-            {
+            if ($available === false) {
                 throw new NsqException("stream_select() failed : " . \json_encode($streamPool), NsqException::TIMEOUT);
             }
         }

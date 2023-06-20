@@ -2,7 +2,7 @@
   "name": "maxzhang666/laravel-nsq",
   "description": "Laravel NSQ",
   "require": {
-    "php": ">=7.1.3",
+    "php": "^8.0",
     "laravel/framework": "6.*|7.*|8.*",
     "merkeleon/phpnsq": "^1.0"
   },

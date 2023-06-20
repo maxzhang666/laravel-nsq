@@ -1,7 +1,15 @@
 # merkeleon-nsq
+
 Laravel package for NSQ queue manager that uses Laravel's API
 
+# dep func
+
+```shell
+pcntl_sigprocmask
+```
+
 ## Installation
+
 First, require the package using Composer:
 
 `composer require merkeleon/laravel-nsq`
@@ -24,9 +32,10 @@ Use comma as separator if you want to use several servers:
 
 `NSQSD_URL=127.0.0.1:4150,127.0.0.1:4151,127.0.0.1:4152`
 
-
 ## Example
+
 ### Job class
+
 ```
 <?php
 
@@ -63,6 +72,7 @@ class CoolJob implements ShouldQueue
 ```
 
 ### Some where in a code
+
 ```
 <?php
 
