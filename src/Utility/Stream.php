@@ -4,12 +4,19 @@ namespace Merkeleon\Nsq\Utility;
 
 use Merkeleon\Nsq\Exception\
 {ConnectionException, NsqException, WriteToSocketException};
+use Illuminate\Support\Facades\Log;
 
 class Stream
 {
     public static function pfopen($host, $port, $timeout)
     {
+        try {
+
         $socket = fsockopen($host, $port, $errno, $errstr, $timeout);
+        }catch (\Exception $e){
+            Log::error('pfopen error', [$host,$port,$errno,$errstr]);
+            throw new ConnectionException("Could not connect to {$host}:{$port} [{$errno}]:[{$errstr}]");
+        }
         if (false === $socket)
         {
             throw new ConnectionException("Could not connect to {$host}:{$port} [{$errno}]:[{$errstr}]");
